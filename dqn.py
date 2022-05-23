@@ -3,7 +3,7 @@ from copy import deepcopy
 
 
 class DQN:
-    def __int__(self, model, params):
+    def __init__(self, model, params):
         self.model = model
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=params.get('lr', 5E-4))
         self.gamma = params.get('gamma', 0.99)
@@ -16,6 +16,11 @@ class DQN:
         self.double_q = params.get('double_q', True)
         self.all_parameters = model.parameters()
 
+    @staticmethod
+    def _process_input(states, preferences):
+        processed_input = torch.cat((states, preferences), dim=-1)
+        return processed_input
+
     def target_model_update(self):
         """ This function updates the target network. """
         if self.target_model is not None:
@@ -23,29 +28,30 @@ class DQN:
                 tp *= (1 - self.soft_target_update_param)
                 tp += self.soft_target_update_param * mp.detach()
 
-    def q_values(self, states, target=False):
+    def q_values(self, states, preferences, target=False):
         """ Returns the Q-values of the given "states". Uses the target network if "target=True". """
         target = target and self.target_model is not None
-        return (self.target_model if target else self.model)(states)
+        processed_input = DQN._process_input(states, preferences)
+        return (self.target_model if target else self.model)(processed_input)
 
     def _current_values(self, batch):
         """ Computes the Q-values of the 'states' and 'actions' of the given "batch". """
-        qvalues = self.q_values(batch['states'])
+        qvalues = self.q_values(batch['states'], batch['preferences'])
         return qvalues.gather(dim=-1, index=batch['actions'])
 
     def _next_state_values(self, batch):
-        """ Computes the Q-values of the 'next_states' of the given "batch".
+        """ Computes the Q-values of the 'next_state' of the given "batch".
             Is greedy w.r.t. to current Q-network or target-network, depending on parameters. """
         with torch.no_grad():  # Next state values do not need gradients in DQN
             # Compute the next states values (with target or current network)
-            qvalues = self.q_values(batch['next_states'], target=True)
+            qvalues = self.q_values(batch['next_states'], batch['preferences'], target=True)
             # Compute the maximum (note the case of double Q-learning)
             if self.target_model is None or not self.double_q:
                 # If we do not do double Q-learning or if there is not target network
                 qvalues = qvalues.max(dim=-1, keepdim=True)[0]
             else:
                 # If we do double Q-learning
-                next_values = self.q_values(batch['next_states'], target=False)
+                next_values = self.q_values(batch['next_states'], batch['preferences'], target=False)
                 actions = next_values.max(dim=-1)[1].unsqueeze(dim=-1)
                 qvalues = qvalues.gather(dim=-1, index=actions)
             return qvalues
@@ -54,7 +60,8 @@ class DQN:
         """ Performs one gradient decent step of DQN. """
         self.model.train(True)
         # Compute TD-loss
-        targets = batch['rewards'] + self.gamma * (~batch['dones'] * self._next_state_values(batch))
+        targets = torch.sum(batch['rewards'] * batch['preferences'], dim=-1).unsqueeze(-1) + self.gamma * (
+                ~batch['dones'] * self._next_state_values(batch))
         loss = self.criterion(self._current_values(batch), targets.detach())
         # Backpropagate loss
         self.optimizer.zero_grad()

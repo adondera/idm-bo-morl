@@ -14,12 +14,13 @@ class ReplayBuffer:
         self.current_size = 0
         self.n_transitions_stored = 0
         # create the buffer to store info
-        self.buffers = {'state': torch.empty((self.size, *self.env_params['state'][0]), dtype=torch.float32),
-                        'action': torch.empty((self.size, *self.env_params['action'][0]), dtype=torch.long),
-                        'reward': torch.empty((self.size, *self.env_params['reward'][0]), dtype=torch.double),
-                        'preference': torch.empty((self.size, *self.env_params['preference'][0]),
+        self.buffers = {'states': torch.empty((self.size, *self.env_params['states'][0]), dtype=torch.float32),
+                        'actions': torch.empty((self.size, *self.env_params['actions'][0]), dtype=torch.long),
+                        'rewards': torch.empty((self.size, *self.env_params['rewards'][0]), dtype=torch.float32),
+                        'preferences': torch.empty((self.size, *self.env_params['preferences'][0]),
                                                   dtype=torch.float32),
-                        'next_state': torch.empty((self.size, *self.env_params['state'][0]), dtype=torch.float32),
+                        'next_states': torch.empty((self.size, *self.env_params['states'][0]), dtype=torch.float32),
+                        'dones': torch.empty((self.size, 1), dtype=torch.bool),
                         }
         # thread lock
         self.lock = threading.Lock()
@@ -33,11 +34,11 @@ class ReplayBuffer:
         with self.lock:
             idxs = self._get_storage_idx(inc=2 * batch_size)
             # store the informations
-            self.buffers['state'][idxs] =  torch.repeat_interleave(mb_state, 2, 0)
-            self.buffers['action'][idxs] = torch.repeat_interleave(mb_action, 2, 0).reshape(2 * batch_size, 1)
-            self.buffers['reward'][idxs] = torch.repeat_interleave(mb_reward, 2, 0)
-            self.buffers['preference'][idxs] = torch.cat((mb_preference, mb_new_preferences))
-            self.buffers['next_state'][idxs] = torch.repeat_interleave(mb_next_state, 2, 0)
+            self.buffers['states'][idxs] = torch.repeat_interleave(mb_state, 2, 0)
+            self.buffers['actions'][idxs] = torch.repeat_interleave(mb_action, 2, 0).reshape(2 * batch_size, 1)
+            self.buffers['rewards'][idxs] = torch.repeat_interleave(mb_reward.to(torch.float32), 2, 0)
+            self.buffers['preferences'][idxs] = torch.cat((mb_preference, mb_new_preferences))
+            self.buffers['next_states'][idxs] = torch.repeat_interleave(mb_next_state, 2, 0)
             self.n_transitions_stored += batch_size * 2
 
     # sample the data from the replay buffer
