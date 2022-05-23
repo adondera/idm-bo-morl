@@ -1,11 +1,16 @@
 import gym
 import random
 import torch
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 
 from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCar3Distance
 from replay_buffer import ReplayBuffer
 from config import default_params
 from dqn import DQN
+
+matplotlib.use('TkAgg')
 
 env = DiscreteMountainCar3Distance(gym.make(("MountainCar-v0")))
 
@@ -19,6 +24,11 @@ env_params = {
     "preferences": ((3,), torch.float32),
     "dones": ((1,), torch.bool)
 }
+
+plt.ion()
+
+fig = plt.figure()
+plt.draw()
 
 config_params = default_params()
 
@@ -44,6 +54,7 @@ states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], 
 
 # TODO: Add model checkpoints.
 # TODO: Add metrics and plots
+losses = []
 for i in range(total_timesteps):
     # Select action and perform env step
     action = random.randint(0, 2)  # TODO: Replace with epsilon greedy
@@ -66,7 +77,13 @@ for i in range(total_timesteps):
         batch = buffer.sample(batch_size)
 
         loss = learner.train(batch)
-        print(loss)
+        losses.append(loss)
+        plt.plot(losses, color='blue')
+        plt.draw()
+        plt.pause(0.02)
 
         # Reset lists after content has been stored in replay buffer
         states, actions, rewards, preferences, next_states = [], [], [], [], []
+
+plt.ioff()
+plt.show()
