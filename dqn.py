@@ -14,6 +14,7 @@ class DQN:
             p.requires_grad = False
         self.soft_target_update_param = params.get('soft_target_update_param', 0.1)
         self.double_q = params.get('double_q', True)
+        self.all_parameters = model.parameters()
 
     def target_model_update(self):
         """ This function updates the target network. """
