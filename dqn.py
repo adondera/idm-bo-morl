@@ -47,7 +47,7 @@ class DQN:
             qvalues = self.q_values(batch['next_states'], batch['preferences'], target=True)
             # Compute the maximum (note the case of double Q-learning)
             if self.target_model is None or not self.double_q:
-                # If we do not do double Q-learning or if there is not target network
+                # If we do not do double Q-learning or if there is no target network
                 qvalues = qvalues.max(dim=-1, keepdim=True)[0]
             else:
                 # If we do double Q-learning
@@ -59,7 +59,7 @@ class DQN:
     def train(self, batch):
         """ Performs one gradient decent step of DQN. """
         self.model.train(True)
-        # Compute TD-loss
+        # Compute TD-loss. We multiply with the preferences here to obtain a single reward.
         targets = torch.sum(batch['rewards'] * batch['preferences'], dim=-1).unsqueeze(-1) + self.gamma * (
                 ~batch['dones'] * self._next_state_values(batch))
         loss = self.criterion(self._current_values(batch), targets.detach())

@@ -1,6 +1,5 @@
 import gym
 import random
-import numpy as np
 import torch
 
 from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCar3Distance
@@ -36,15 +35,21 @@ update_step = 50
 batch_size = 32
 
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5))
+
+# TODO: Select preference based on BO
 preference = (1.0, 1.0, 1.0)
 
 state = env.reset()
 states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], []
+
+# TODO: Add model checkpoints.
+# TODO: Add metrics and plots
 for i in range(total_timesteps):
+    # Select action and perform env step
     action = random.randint(0, 2)  # TODO: Replace with epsilon greedy
     next_state, (r, z), done, info = env.step(action)
 
-    # Keep track of transitions
+    # Store transitions in replay buffer
     states.append(state)
     actions.append(action)
     rewards.append(r)
@@ -52,14 +57,16 @@ for i in range(total_timesteps):
     next_states.append(next_state)
     dones.append(done)  # TODO: Check correctness here (maybe off by 1 errors)
 
+    # Update network after `update_step` steps have been performed
     if (i + 1) % update_step == 0:
-        # TODO: Update network
+        # Convert observations to a list of tensors and store
         episode_batch = list(map(lambda x: torch.tensor(x), [states, actions, rewards, preferences, next_states]))
         buffer.store_episode(episode_batch)
 
         batch = buffer.sample(batch_size)
 
-        learner.train(batch)
+        loss = learner.train(batch)
+        print(loss)
 
+        # Reset lists after content has been stored in replay buffer
         states, actions, rewards, preferences, next_states = [], [], [], [], []
-        exit()

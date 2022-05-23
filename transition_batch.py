@@ -5,6 +5,7 @@ import torch as th
 # Code copied from the DRL course
 # Not needed right now, but can use as a backup
 
+
 class TransitionBatch:
     """ Simple implementation of a batch of transitions (or another dictionary-based tensor structure).
         Read and write operations are thread-safe, but the iterator is not (you cannot iterate
