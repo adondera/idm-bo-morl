@@ -1,4 +1,3 @@
-import time
 import tqdm
 import gym
 import random
@@ -16,9 +15,9 @@ matplotlib.use('TkAgg')
 
 env = DiscreteMountainCar3Distance(gym.make(("MountainCar-v0")))
 
-# TODO: Add GPU support
-device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# TODO: Get the reward anr preference shapes from the environment
 env_params = {
     "states": (env.observation_space.shape, torch.float32),
     "actions": ((1,), torch.long),
@@ -50,8 +49,9 @@ plot_frequency = 1000
 epsilon = 0.1
 
 
-# TODO: Select preference based on BO
+# TODO: Select preference based on BO. Make sure they have the same amount of parameters
 preference = np.array([1.0, 1.0, 1.0], dtype=np.single)
+assert preference.shape == env_params["preferences"][0]
 
 state = env.reset()
 states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], []
