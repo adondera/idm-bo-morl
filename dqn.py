@@ -3,8 +3,8 @@ from copy import deepcopy
 
 
 class DQN:
-    def __init__(self, model, params):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, model, params, device):
+        self.device = device
         self.model = model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=params.get('lr', 5E-4))
         self.gamma = params.get('gamma', 0.99)

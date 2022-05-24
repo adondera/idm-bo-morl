@@ -1,3 +1,5 @@
+import time
+import tqdm
 import gym
 import random
 import torch
@@ -15,7 +17,7 @@ matplotlib.use('TkAgg')
 env = DiscreteMountainCar3Distance(gym.make(("MountainCar-v0")))
 
 # TODO: Add GPU support
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('gpu' if torch.cuda.is_available() else 'cpu')
 
 env_params = {
     "states": (env.observation_space.shape, torch.float32),
@@ -38,7 +40,8 @@ model = torch.nn.Sequential(
     torch.nn.Linear(512, 128), torch.nn.ReLU(),
     torch.nn.Linear(128, env.action_space.n))
 
-learner = DQN(model, config_params)
+learner = DQN(model, config_params, device)
+buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device)
 
 total_timesteps = int(1e5)
 update_step = 50
@@ -46,7 +49,6 @@ batch_size = 32
 plot_frequency = 1000
 epsilon = 0.1
 
-buffer = ReplayBuffer(env_params, buffer_size=int(1e5))
 
 # TODO: Select preference based on BO
 preference = np.array([1.0, 1.0, 1.0], dtype=np.single)
@@ -57,7 +59,7 @@ states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], 
 # TODO: Add model checkpoints.
 # TODO: Add metrics and plots
 losses = []
-for i in range(total_timesteps):
+for i in tqdm.tqdm(range(total_timesteps)):
     # Select action and perform env step
     if np.random.rand() < epsilon:
         action = random.randint(0, env.action_space.n - 1)

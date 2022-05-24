@@ -7,8 +7,8 @@ The replay buffer here is basically from the openai baselines code
 
 
 class ReplayBuffer:
-    def __init__(self, env_params, buffer_size):
-        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    def __init__(self, env_params, buffer_size, device):
+        self.device = device
         self.env_params = env_params
         self.size = buffer_size
         # memory management
