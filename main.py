@@ -51,7 +51,6 @@ buffer = ReplayBuffer(env_params, buffer_size=int(1e5))
 # TODO: Select preference based on BO
 preference = np.array([1.0, 1.0, 1.0], dtype=np.single)
 
-
 state = env.reset()
 states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], []
 
@@ -76,7 +75,8 @@ for i in range(total_timesteps):
     # Update network after `update_step` steps have been performed
     if (i + 1) % update_step == 0:
         # Convert observations to a list of tensors and store
-        episode_batch = list(map(lambda x: torch.tensor(x), [states, actions, rewards, preferences, next_states]))
+        episode_batch = list(
+            map(lambda x: torch.tensor(x).to(device), [states, actions, rewards, preferences, next_states]))
         buffer.store_episode(episode_batch)
 
         batch = buffer.sample(batch_size)
