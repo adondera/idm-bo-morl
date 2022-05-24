@@ -18,12 +18,13 @@ class ReplayBuffer:
                         'actions': torch.empty((self.size, *self.env_params['actions'][0]), dtype=torch.long),
                         'rewards': torch.empty((self.size, *self.env_params['rewards'][0]), dtype=torch.float32),
                         'preferences': torch.empty((self.size, *self.env_params['preferences'][0]),
-                                                  dtype=torch.float32),
+                                                   dtype=torch.float32),
                         'next_states': torch.empty((self.size, *self.env_params['states'][0]), dtype=torch.float32),
                         'dones': torch.empty((self.size, 1), dtype=torch.bool),
                         }
         # thread lock
         self.lock = threading.Lock()
+        self.position = 0
 
     # Store the episode
     def store_episode(self, episode_batch):
@@ -55,16 +56,9 @@ class ReplayBuffer:
 
     def _get_storage_idx(self, inc=None):
         inc = inc or 1
-        if self.current_size + inc <= self.size:
-            idx = torch.arange(self.current_size, self.current_size + inc)
-        elif self.current_size < self.size:
-            overflow = inc - (self.size - self.current_size)
-            idx_a = torch.arange(self.current_size, self.size)
-            idx_b = torch.randint(0, self.current_size, overflow)
-            idx = torch.cat([idx_a, idx_b])
-        else:
-            idx = torch.randint(0, self.size, inc)
+        idxs = torch.arange(self.position, self.position + inc) % self.size
+        self.position += inc
         self.current_size = min(self.size, self.current_size + inc)
         if inc == 1:
-            idx = idx[0]
-        return idx
+            idx = idxs[0]
+        return idxs

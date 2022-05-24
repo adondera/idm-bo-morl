@@ -43,6 +43,7 @@ learner = DQN(model, config_params)
 total_timesteps = int(1e5)
 update_step = 50
 batch_size = 32
+plot_frequency = 1000
 
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5))
 
@@ -78,12 +79,14 @@ for i in range(total_timesteps):
 
         loss = learner.train(batch)
         losses.append(loss)
+
+        # Reset lists after content has been stored in replay buffer
+        states, actions, rewards, preferences, next_states = [], [], [], [], []\
+
+    if (i + 1) % plot_frequency == 0:
         plt.plot(losses, color='blue')
         plt.draw()
         plt.pause(0.02)
-
-        # Reset lists after content has been stored in replay buffer
-        states, actions, rewards, preferences, next_states = [], [], [], [], []
 
 plt.ioff()
 plt.show()
