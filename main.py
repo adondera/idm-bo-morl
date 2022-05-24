@@ -74,6 +74,8 @@ for i in tqdm.tqdm(range(total_timesteps)):
     next_states.append(next_state)
     dones.append(done)  # TODO: Check correctness here (maybe off by 1 errors)
 
+    state = next_state
+
     # Update network after `update_step` steps have been performed
     if (i + 1) % update_step == 0:
         # Convert observations to a list of tensors and store
@@ -94,6 +96,10 @@ for i in tqdm.tqdm(range(total_timesteps)):
         plt.plot(losses, color='blue')
         plt.draw()
         plt.pause(0.02)
+
+    # If the episode ends reset the environment
+    if done:
+        state = env.reset()
 
 plt.plot(losses, color='blue')
 plt.draw()
