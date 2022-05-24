@@ -15,7 +15,7 @@ matplotlib.use('TkAgg')
 
 env = DiscreteMountainCar3Distance(gym.make(("MountainCar-v0")))
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 
 # TODO: Get the reward anr preference shapes from the environment
 env_params = {
@@ -89,10 +89,13 @@ for i in tqdm.tqdm(range(total_timesteps)):
         # Reset lists after content has been stored in replay buffer
         states, actions, rewards, preferences, next_states = [], [], [], [], []
 
+    # If you want the code to run faster comment these lines to disable the interactive plot
     if (i + 1) % plot_frequency == 0:
         plt.plot(losses, color='blue')
         plt.draw()
         plt.pause(0.02)
 
+plt.plot(losses, color='blue')
+plt.draw()
 plt.ioff()
 plt.show()
