@@ -21,6 +21,11 @@ class DQN:
         processed_input = torch.cat((states, preferences), dim=-1)
         return processed_input
 
+    def get_greedy_value(self, state, preference):
+        processed_input = DQN._process_input(state, preference)
+        out = self.model(processed_input)
+        return torch.max(out, dim=-1)[1].item()
+
     def target_model_update(self):
         """ This function updates the target network. """
         if self.target_model is not None:

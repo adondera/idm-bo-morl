@@ -44,11 +44,13 @@ total_timesteps = int(1e5)
 update_step = 50
 batch_size = 32
 plot_frequency = 1000
+epsilon = 0.1
 
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5))
 
 # TODO: Select preference based on BO
-preference = (1.0, 1.0, 1.0)
+preference = np.array([1.0, 1.0, 1.0], dtype=np.single)
+
 
 state = env.reset()
 states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], []
@@ -58,9 +60,11 @@ states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], 
 losses = []
 for i in range(total_timesteps):
     # Select action and perform env step
-    action = random.randint(0, 2)  # TODO: Replace with epsilon greedy
-    next_state, (r, z), done, info = env.step(action)
-
+    if np.random.rand() < epsilon:
+        action = random.randint(0, env.action_space.n - 1)
+    else:
+        action = learner.get_greedy_value(torch.from_numpy(state), torch.from_numpy(preference))
+    next_state, (r, z), done, info = env.step(action)  # TODO: Do something with Z
     # Store transitions in replay buffer
     states.append(state)
     actions.append(action)
@@ -81,7 +85,7 @@ for i in range(total_timesteps):
         losses.append(loss)
 
         # Reset lists after content has been stored in replay buffer
-        states, actions, rewards, preferences, next_states = [], [], [], [], []\
+        states, actions, rewards, preferences, next_states = [], [], [], [], []
 
     if (i + 1) % plot_frequency == 0:
         plt.plot(losses, color='blue')
