@@ -7,6 +7,7 @@ class DiscreteMountainCar3Distance(gym.RewardWrapper):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 3
+        self.reward_names = ["-distance_to_left_hill", "-distance_to_start", "-distance_to_right_hill"]
 
     def reward(self, reward: float) -> tuple[tuple[float, float, float], float]:
         """
@@ -29,6 +30,8 @@ class DiscreteMountainCarVelocity(gym.RewardWrapper):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 1
+        self.reward_names = ["current_velocity"]
+
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         """

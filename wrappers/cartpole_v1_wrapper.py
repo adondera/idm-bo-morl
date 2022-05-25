@@ -34,6 +34,7 @@ class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
         super().__init__(env)
         self.previous_state = None
         self.numberPreferences = 2
+        self.reward_names = ["1-angle", "-energy"]
 
     def reward(self, reward):
         base_env = self.env.env

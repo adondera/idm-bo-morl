@@ -7,6 +7,8 @@ class PendulumRewardWrapper(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 4
+        self.reward_names = ["angle", "angular_velocity", "torque", "energy"]
+
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
@@ -43,6 +45,7 @@ class PendulumEnergyRewardWrapper(PendulumRewardWrapper):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 2
+        self.reward_names = ["angle", "energy"]
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
@@ -64,6 +67,8 @@ class PendulumMultiObjectiveOriginalRewardWrapper(PendulumRewardWrapper):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 3
+        self.reward_names = ["angle", "angular_velocity"]
+
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)

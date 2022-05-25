@@ -8,33 +8,27 @@ import numpy as np
 
 from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCar3Distance
 from wrappers.cartpole_v1_wrapper import CartPoleV1AngleEnergyRewardWrapper
+from wrappers.pendulum_wrapper import PendulumRewardWrapper
 from replay_buffer import ReplayBuffer
 from config import default_params
 from dqn import DQN
 
 matplotlib.use('TkAgg')
 
-# env = DiscreteMountainCar3Distance(gym.make("CartPole-v1"))
+# env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
+# env = PendulumRewardWrapper(gym.make("Pendulum-v1")) #this one doesn't work yet, because it has no env.action_space.n
 env = CartPoleV1AngleEnergyRewardWrapper(gym.make("CartPole-v1"))
 
 device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 
-# TODO: Get the reward anr preference shapes from the environment
 env_params = {
     "states": (env.observation_space.shape, torch.float32),
-    "actions": ((env.action_space.n,), torch.long),
+    "actions": ((1,), torch.long),
     "rewards": ((env.__dict__["numberPreferences"],), torch.float32),
     "preferences": ((env.__dict__["numberPreferences"],), torch.float32),
+    "reward_names": (env.__dict__["reward_names"], torch.StringType),
     "dones": ((1,), torch.bool)
 }
-
-# env_params = {
-#     "states": (env.observation_space.shape, torch.float32),
-#     "actions": (env.action_space.n, torch.long),
-#     "rewards": (env.__dict__["numberPreferences"], torch.float32),
-#     "preferences": (env.__dict__["numberPreferences"], torch.float32),
-#     "dones": ((1,), torch.bool)
-# }
 
 plt.ion()
 
@@ -52,7 +46,7 @@ model = torch.nn.Sequential(
 learner = DQN(model, config_params, device)
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device)
 
-total_timesteps = int(1e5)
+total_timesteps = int(2e5)
 update_step = 50
 batch_size = 32
 plot_frequency = 1000
@@ -60,7 +54,7 @@ epsilon = 0.1
 
 
 # TODO: Select preference based on BO. Make sure they have the same amount of parameters
-preference = np.array([1.0, 0.0], dtype=np.single)
+preference = np.array([0.5, 0.5], dtype=np.single)
 assert preference.shape == env_params["preferences"][0]
 
 state = env.reset()
@@ -68,11 +62,13 @@ states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], 
 
 # TODO: Add model checkpoints.
 losses = []
-rewards = []
-rewards = []
+rewardStats = []
+for i in range(env_params["rewards"][0][0]):
+    rewardStats.append([])
 # rewards3 = []
 rewardsGlobal = []
 episodeLengths = []
+colors = ['green', 'red', 'purple', 'orange']
 globalReward = 0
 episodeLength = 0
 for i in tqdm.tqdm(range(total_timesteps)):
@@ -92,7 +88,7 @@ for i in tqdm.tqdm(range(total_timesteps)):
 
     state = next_state
 
-    # for acummulating global reward at end of episode
+    # for tracking acummulative global reward and episode length at end of episode
     globalReward += z
     episodeLength += 1
     if done:
@@ -104,8 +100,8 @@ for i in tqdm.tqdm(range(total_timesteps)):
     # Update network after `update_step` steps have been performed
     if (i + 1) % update_step == 0:
         # Convert observations to a list of tensors and store
-        episode_batch = list(
-            map(lambda x: torch.tensor(x).to(device), [states, actions, rewards, preferences, next_states]))
+        episode_batch = list(map(lambda x: torch.tensor(x).to(device), [states, actions, rewards, preferences, next_states])
+            )
         buffer.store_episode(episode_batch)
 
         batch = buffer.sample(batch_size)
@@ -114,23 +110,17 @@ for i in tqdm.tqdm(range(total_timesteps)):
 
         # for statistics
         losses.append(loss)
-        rewards1.append(r[0])
-        rewards2.append(r[1])
-        
-        # rewards3.append(r[2])
-        rewardsGlobal.append(z)
-
+        for j in range(env_params["rewards"][0][0]):
+            rewardStats[j].append(r[j])
+       
         # Reset lists after content has been stored in replay buffer
         states, actions, rewards, preferences, next_states = [], [], [], [], []
 
     # If you want the code to run faster comment these lines to disable the interactive plot
     if (i + 1) % plot_frequency == 0:
         plt.plot(losses, color='blue', label='loss')
-        plt.plot(rewards1, color='red', label='angle')
-        plt.plot(rewards2, color='green', label='- energy')
-        # plt.plot(rewards3, color='yellow', label='- distance to right')
-        # plt.plot(rewardsGlobal, color='black', label='global reward')
-        # plt.plot(episodeLengths, color='yellow', label='episode length')
+        for j in range(env_params["rewards"][0][0]):
+            plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
         #add legend on first iteration
         if i == 999:
             plt.legend()
@@ -142,8 +132,8 @@ for i in tqdm.tqdm(range(total_timesteps)):
         state = env.reset()
 
 plt.plot(losses, color='blue', label='loss')
-plt.plot(rewards1, color='red', label='angle')
-plt.plot(rewards2, color='green', label='- energy')
+for j in range(env_params["rewards"][0][0]):
+    plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
 # plt.plot(rewards3, color='yellow', label='- distance to right')
 # plt.legend()
 plt.draw()
@@ -152,6 +142,7 @@ plt.show()
 
 plt.plot(rewardsGlobal, color='black', label='global reward')
 plt.plot(episodeLengths, color='yellow', label='episode length')
+plt.legend()
 plt.draw()
 plt.ioff()
 plt.show()
