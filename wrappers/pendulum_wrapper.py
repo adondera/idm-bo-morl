@@ -6,6 +6,7 @@ from gym.envs.classic_control.pendulum import angle_normalize
 class PendulumRewardWrapper(gym.Wrapper):
     def __init__(self, env):
         super().__init__(env)
+        self.numberPreferences = 4
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
@@ -41,6 +42,7 @@ class PendulumEnergyRewardWrapper(PendulumRewardWrapper):
 
     def __init__(self, env):
         super().__init__(env)
+        self.numberPreferences = 2
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
@@ -61,6 +63,7 @@ class PendulumMultiObjectiveOriginalRewardWrapper(PendulumRewardWrapper):
 
     def __init__(self, env):
         super().__init__(env)
+        self.numberPreferences = 3
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)

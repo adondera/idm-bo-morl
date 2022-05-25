@@ -33,6 +33,7 @@ class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
     def __init__(self, env):
         super().__init__(env)
         self.previous_state = None
+        self.numberPreferences = 2
 
     def reward(self, reward):
         base_env = self.env.env
@@ -42,7 +43,7 @@ class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
         position_0, velocity_0, angle_0, angular_velocity_0 = previous_state
         delta_velocity = velocity - velocity_0
         energy = pow(delta_velocity, 2)
-        R = (abs(angle), -energy)
+        R = (1 - abs(angle), -energy)
 
         z = reward
         self.previous_state = state

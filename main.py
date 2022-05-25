@@ -14,6 +14,7 @@ from dqn import DQN
 
 matplotlib.use('TkAgg')
 
+# env = DiscreteMountainCar3Distance(gym.make("CartPole-v1"))
 env = CartPoleV1AngleEnergyRewardWrapper(gym.make("CartPole-v1"))
 
 device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
@@ -21,11 +22,19 @@ device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 # TODO: Get the reward anr preference shapes from the environment
 env_params = {
     "states": (env.observation_space.shape, torch.float32),
-    "actions": ((1,), torch.long),
-    "rewards": ((2,), torch.float32),
-    "preferences": ((2,), torch.float32),
+    "actions": ((env.action_space.n,), torch.long),
+    "rewards": ((env.__dict__["numberPreferences"],), torch.float32),
+    "preferences": ((env.__dict__["numberPreferences"],), torch.float32),
     "dones": ((1,), torch.bool)
 }
+
+# env_params = {
+#     "states": (env.observation_space.shape, torch.float32),
+#     "actions": (env.action_space.n, torch.long),
+#     "rewards": (env.__dict__["numberPreferences"], torch.float32),
+#     "preferences": (env.__dict__["numberPreferences"], torch.float32),
+#     "dones": ((1,), torch.bool)
+# }
 
 plt.ion()
 
@@ -51,7 +60,7 @@ epsilon = 0.1
 
 
 # TODO: Select preference based on BO. Make sure they have the same amount of parameters
-preference = np.array([1.0, 1.0], dtype=np.single)
+preference = np.array([1.0, 0.0], dtype=np.single)
 assert preference.shape == env_params["preferences"][0]
 
 state = env.reset()
@@ -59,11 +68,13 @@ states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], 
 
 # TODO: Add model checkpoints.
 losses = []
-rewards1 = []
-rewards2 = []
+rewards = []
+rewards = []
 # rewards3 = []
 rewardsGlobal = []
+episodeLengths = []
 globalReward = 0
+episodeLength = 0
 for i in tqdm.tqdm(range(total_timesteps)):
     # Select action and perform env step
     if np.random.rand() < epsilon:
@@ -83,9 +94,12 @@ for i in tqdm.tqdm(range(total_timesteps)):
 
     # for acummulating global reward at end of episode
     globalReward += z
+    episodeLength += 1
     if done:
         rewardsGlobal.append(globalReward)
+        episodeLengths.append(episodeLength)
         globalReward = 0
+        episodeLength = 0
 
     # Update network after `update_step` steps have been performed
     if (i + 1) % update_step == 0:
@@ -102,6 +116,7 @@ for i in tqdm.tqdm(range(total_timesteps)):
         losses.append(loss)
         rewards1.append(r[0])
         rewards2.append(r[1])
+        
         # rewards3.append(r[2])
         rewardsGlobal.append(z)
 
@@ -114,7 +129,8 @@ for i in tqdm.tqdm(range(total_timesteps)):
         plt.plot(rewards1, color='red', label='angle')
         plt.plot(rewards2, color='green', label='- energy')
         # plt.plot(rewards3, color='yellow', label='- distance to right')
-        plt.plot(rewardsGlobal, color='black', label='global reward')
+        # plt.plot(rewardsGlobal, color='black', label='global reward')
+        # plt.plot(episodeLengths, color='yellow', label='episode length')
         #add legend on first iteration
         if i == 999:
             plt.legend()
@@ -130,6 +146,12 @@ plt.plot(rewards1, color='red', label='angle')
 plt.plot(rewards2, color='green', label='- energy')
 # plt.plot(rewards3, color='yellow', label='- distance to right')
 # plt.legend()
+plt.draw()
+plt.ioff()
+plt.show()
+
+plt.plot(rewardsGlobal, color='black', label='global reward')
+plt.plot(episodeLengths, color='yellow', label='episode length')
 plt.draw()
 plt.ioff()
 plt.show()
