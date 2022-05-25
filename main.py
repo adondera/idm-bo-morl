@@ -44,17 +44,17 @@ model = torch.nn.Sequential(
     torch.nn.Linear(128, env.action_space.n))
 
 learner = DQN(model, config_params, device)
-buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device)
+buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
 
-total_timesteps = int(2e5)
+total_timesteps = int(1e5)
 update_step = 50
 batch_size = 32
 plot_frequency = 1000
-epsilon = 0.1
+epsilon = 0.3
 
 
 # TODO: Select preference based on BO. Make sure they have the same amount of parameters
-preference = np.array([0.5, 0.5], dtype=np.single)
+preference = np.array([0.0, 1.0], dtype=np.single)
 assert preference.shape == env_params["preferences"][0]
 
 state = env.reset()
@@ -65,7 +65,6 @@ losses = []
 rewardStats = []
 for i in range(env_params["rewards"][0][0]):
     rewardStats.append([])
-# rewards3 = []
 rewardsGlobal = []
 episodeLengths = []
 colors = ['green', 'red', 'purple', 'orange']
@@ -73,6 +72,9 @@ globalReward = 0
 episodeLength = 0
 for i in tqdm.tqdm(range(total_timesteps)):
     # Select action and perform env step
+    # this does linearly decaying epilon greedy exploration
+    # if np.random.rand() < (epsilon - epsilon*(i/total_timesteps)/2): #TODO: use better exploration method e.g.
+    # this does normal epsilon exploration
     if np.random.rand() < epsilon:
         action = random.randint(0, env.action_space.n - 1)
     else:
@@ -134,7 +136,6 @@ for i in tqdm.tqdm(range(total_timesteps)):
 plt.plot(losses, color='blue', label='loss')
 for j in range(env_params["rewards"][0][0]):
     plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
-# plt.plot(rewards3, color='yellow', label='- distance to right')
 # plt.legend()
 plt.draw()
 plt.ioff()
