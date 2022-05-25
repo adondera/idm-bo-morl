@@ -44,7 +44,7 @@ model = torch.nn.Sequential(
     torch.nn.Linear(128, env.action_space.n))
 
 learner = DQN(model, config_params, device)
-buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device)
+buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
 
 total_timesteps = int(1e5)
 update_step = 50
