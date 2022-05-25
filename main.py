@@ -83,7 +83,7 @@ for i in tqdm.tqdm(range(total_timesteps)):
     # Store transitions in replay buffer
     states.append(state)
     actions.append(action)
-    rewards.append((r[0], z))
+    rewards.append(r)
     preferences.append(preference)
     next_states.append(next_state)
     dones.append(done)
@@ -119,15 +119,15 @@ for i in tqdm.tqdm(range(total_timesteps)):
         states, actions, rewards, preferences, next_states = [], [], [], [], []
 
     # If you want the code to run faster comment these lines to disable the interactive plot
-    # if (i + 1) % plot_frequency == 0:
-    #     plt.plot(losses, color='blue', label='loss')
-    #     for j in range(env_params["rewards"][0][0]):
-    #         plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
-    #     #add legend on first iteration
-    #     if i == 999:
-    #         plt.legend()
-    #     plt.draw()
-    #     plt.pause(0.02)
+    if (i + 1) % plot_frequency == 0:
+        plt.plot(losses, color='blue', label='loss')
+        for j in range(env_params["rewards"][0][0]):
+            plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
+        #add legend on first iteration
+        if i == 999:
+            plt.legend()
+        plt.draw()
+        plt.pause(0.02)
 
     # If the episode ends reset the environment
     if done:
@@ -136,7 +136,6 @@ for i in tqdm.tqdm(range(total_timesteps)):
 plt.plot(losses, color='blue', label='loss')
 for j in range(env_params["rewards"][0][0]):
     plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
-# plt.plot(rewards3, color='yellow', label='- distance to right')
 # plt.legend()
 plt.draw()
 plt.ioff()
