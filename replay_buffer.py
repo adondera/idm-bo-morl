@@ -28,6 +28,8 @@ class ReplayBuffer:
         self.lock = threading.Lock()
         self.position = 0
         self.k = k
+        self.norm = torch.zeros(self.env_params['rewards'][0])
+
 
     # Store the episode
     def store_episode(self, episode_batch):
@@ -41,10 +43,13 @@ class ReplayBuffer:
             # store the informations
             self.buffers['states'][idxs] = torch.repeat_interleave(mb_state, self.k+1, 0)
             self.buffers['actions'][idxs] = torch.repeat_interleave(mb_action, self.k+1, 0).reshape((self.k+1) * batch_size, 1)
-            self.buffers['rewards'][idxs] = torch.repeat_interleave(mb_reward.to(torch.float32), self.k+1, 0)
+            rewards = torch.repeat_interleave(mb_reward.to(torch.float32), self.k+1, 0)
+            self.buffers['rewards'][idxs] = rewards
             self.buffers['preferences'][idxs] = torch.cat((mb_preference, mb_new_preferences))
             self.buffers['next_states'][idxs] = torch.repeat_interleave(mb_next_state, self.k+1, 0)
             self.n_transitions_stored += batch_size * (self.k+1)
+            # update the normalization constant
+            self.norm = self.norm*0.5 + 0.5*torch.mean(rewards, dim=0)
 
     # Sample the data from the replay buffer
     def sample(self, batch_size):
@@ -55,6 +60,8 @@ class ReplayBuffer:
         idxs = torch.randint(0, self.current_size, (batch_size,))
         # Sample transitions
         transitions = {key: temp_buffers[key][idxs] for key in temp_buffers.keys()}
+        #multiply by the normlization constant to normalize rewards
+        transitions['rewards'] = -transitions['rewards']/self.norm
         return transitions
 
     def _get_storage_idx(self, inc=None):

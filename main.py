@@ -38,10 +38,12 @@ plt.draw()
 config_params = default_params()
 
 model = torch.nn.Sequential(
-    torch.nn.Linear(env_params['states'][0][0] + env_params["rewards"][0][0], 128), torch.nn.ReLU(),
-    torch.nn.Linear(128, 512), torch.nn.ReLU(),
-    torch.nn.Linear(512, 128), torch.nn.ReLU(),
-    torch.nn.Linear(128, env.action_space.n))
+    torch.nn.Linear(env_params['states'][0][0] + env_params["rewards"][0][0], 215), torch.nn.ReLU(),
+    torch.nn.Linear(215, 512), torch.nn.ReLU(),
+    torch.nn.Linear(512, 1024), torch.nn.ReLU(),
+    torch.nn.Linear(1024, 512), torch.nn.ReLU(),
+    torch.nn.Linear(512, 215), torch.nn.ReLU(),
+    torch.nn.Linear(215, env.action_space.n))
 
 learner = DQN(model, config_params, device)
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
@@ -54,7 +56,7 @@ epsilon = 0.3
 
 
 # TODO: Select preference based on BO. Make sure they have the same amount of parameters
-preference = np.array([0.0, 1.0], dtype=np.single)
+preference = np.array([1.0, 0.0], dtype=np.single)
 assert preference.shape == env_params["preferences"][0]
 
 state = env.reset()
@@ -73,9 +75,9 @@ episodeLength = 0
 for i in tqdm.tqdm(range(total_timesteps)):
     # Select action and perform env step
     # this does linearly decaying epilon greedy exploration
-    # if np.random.rand() < (epsilon - epsilon*(i/total_timesteps)/2): #TODO: use better exploration method e.g.
+    if np.random.rand() < (epsilon - epsilon*(i/total_timesteps)/2): #TODO: use better exploration method e.g.
     # this does normal epsilon exploration
-    if np.random.rand() < epsilon:
+    # if np.random.rand() < epsilon:
         action = random.randint(0, env.action_space.n - 1)
     else:
         action = learner.get_greedy_value(torch.from_numpy(state), torch.from_numpy(preference))
@@ -114,7 +116,7 @@ for i in tqdm.tqdm(range(total_timesteps)):
         losses.append(loss)
         for j in range(env_params["rewards"][0][0]):
             rewardStats[j].append(r[j])
-       
+
         # Reset lists after content has been stored in replay buffer
         states, actions, rewards, preferences, next_states = [], [], [], [], []
 
@@ -123,6 +125,8 @@ for i in tqdm.tqdm(range(total_timesteps)):
         plt.plot(losses, color='blue', label='loss')
         for j in range(env_params["rewards"][0][0]):
             plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
+        plt.plot(rewardsGlobal, color='black', label='global reward')
+        plt.plot(episodeLengths, color='yellow', label='episode length')
         #add legend on first iteration
         if i == 999:
             plt.legend()
