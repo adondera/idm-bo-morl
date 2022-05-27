@@ -12,6 +12,8 @@ from wrappers.pendulum_wrapper import PendulumRewardWrapper
 from replay_buffer import ReplayBuffer
 from config import default_params
 from dqn import DQN
+from scipy.ndimage.filters import uniform_filter1d
+
 
 matplotlib.use('TkAgg')
 
@@ -30,9 +32,10 @@ env_params = {
     "dones": ((1,), torch.bool)
 }
 
+fig, (ax1, ax2, ax3, ax4) = plt.subplots(4, 1)
+
 plt.ion()
 
-fig = plt.figure()
 plt.draw()
 
 config_params = default_params()
@@ -54,7 +57,6 @@ batch_size = 32
 plot_frequency = 1000
 epsilon = 0.3
 
-
 # TODO: Select preference based on BO. Make sure they have the same amount of parameters
 preference = np.array([1.0, 0.0], dtype=np.single)
 assert preference.shape == env_params["preferences"][0]
@@ -74,14 +76,18 @@ globalReward = 0
 episodeLength = 0
 for i in tqdm.tqdm(range(total_timesteps)):
     # Select action and perform env step
-    # this does linearly decaying epilon greedy exploration
-    if np.random.rand() < (epsilon - epsilon*(i/total_timesteps)/2): #TODO: use better exploration method e.g.
+
     # this does normal epsilon exploration
     # if np.random.rand() < epsilon:
+
+    # this does linearly decaying epilon greedy exploration
+    if np.random.rand() < (epsilon - epsilon * (i / total_timesteps) / 2):  # TODO: use better exploration method e.g.
         action = random.randint(0, env.action_space.n - 1)
     else:
         action = learner.get_greedy_value(torch.from_numpy(state), torch.from_numpy(preference))
+
     next_state, (r, z), done, info = env.step(action)  # TODO: Do something with Z
+
     # Store transitions in replay buffer
     states.append(state)
     actions.append(action)
@@ -92,7 +98,7 @@ for i in tqdm.tqdm(range(total_timesteps)):
 
     state = next_state
 
-    # for tracking acummulative global reward and episode length at end of episode
+    # for tracking cumulative global reward and episode length at end of episode
     globalReward += z
     episodeLength += 1
     if done:
@@ -104,8 +110,9 @@ for i in tqdm.tqdm(range(total_timesteps)):
     # Update network after `update_step` steps have been performed
     if (i + 1) % update_step == 0:
         # Convert observations to a list of tensors and store
-        episode_batch = list(map(lambda x: torch.tensor(x).to(device), [states, actions, rewards, preferences, next_states])
-            )
+        episode_batch = list(
+            map(lambda x: torch.tensor(x).to(device), [states, actions, rewards, preferences, next_states])
+        )
         buffer.store_episode(episode_batch)
 
         batch = buffer.sample(batch_size)
@@ -122,12 +129,15 @@ for i in tqdm.tqdm(range(total_timesteps)):
 
     # If you want the code to run faster comment these lines to disable the interactive plot
     if (i + 1) % plot_frequency == 0:
-        plt.plot(losses, color='blue', label='loss')
+        ax1.clear()
+        ax1.plot(uniform_filter1d(losses, size=100), color='blue', label='loss')
         for j in range(env_params["rewards"][0][0]):
-            plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
-        plt.plot(rewardsGlobal, color='black', label='global reward')
-        plt.plot(episodeLengths, color='yellow', label='episode length')
-        #add legend on first iteration
+            ax2.plot(rewardStats[j], color=colors[j], label=env_params["reward_names"][0][j])
+        ax3.clear()
+        ax3.plot(uniform_filter1d(rewardsGlobal, size=100), color='black', label='global reward')
+        ax4.clear()
+        ax4.plot(uniform_filter1d(episodeLengths, size=100), color='yellow', label='episode length')
+        # add legend on first iteration
         if i == 999:
             plt.legend()
         plt.draw()
@@ -137,17 +147,19 @@ for i in tqdm.tqdm(range(total_timesteps)):
     if done:
         state = env.reset()
 
-plt.plot(losses, color='blue', label='loss')
-for j in range(env_params["rewards"][0][0]):
-    plt.plot(rewardStats[j], color=colors[j], label = env_params["reward_names"][0][j])
+# ax1.plot(losses, color='blue', label='loss')
+# for j in range(env_params["rewards"][0][0]):
+#     ax2.plot(rewardStats[j], color=colors[j], label=env_params["reward_names"][0][j])
+# ax3.plot(rewardsGlobal, color='black', label='global reward')
+# ax4.plot(episodeLengths, color='yellow', label='episode length')
+# # plt.legend()
+# plt.draw()
+# plt.ioff()
+# plt.show()
+#
+# plt.plot(rewardsGlobal, color='black', label='global reward')
+# plt.plot(episodeLengths, color='yellow', label='episode length')
 # plt.legend()
-plt.draw()
-plt.ioff()
-plt.show()
-
-plt.plot(rewardsGlobal, color='black', label='global reward')
-plt.plot(episodeLengths, color='yellow', label='episode length')
-plt.legend()
-plt.draw()
-plt.ioff()
-plt.show()
+# plt.draw()
+# plt.ioff()
+# plt.show()
