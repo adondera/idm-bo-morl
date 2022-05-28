@@ -51,7 +51,7 @@ model = torch.nn.Sequential(
 learner = DQN(model, config_params, device)
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
 
-total_timesteps = int(1e5)
+total_timesteps = int(2e5)
 update_step = 50
 batch_size = 32
 plot_frequency = 1000
@@ -147,15 +147,18 @@ for i in tqdm.tqdm(range(total_timesteps)):
     if done:
         state = env.reset()
 
-# ax1.plot(losses, color='blue', label='loss')
-# for j in range(env_params["rewards"][0][0]):
-#     ax2.plot(rewardStats[j], color=colors[j], label=env_params["reward_names"][0][j])
-# ax3.plot(rewardsGlobal, color='black', label='global reward')
-# ax4.plot(episodeLengths, color='yellow', label='episode length')
+ax1.clear()
+ax1.plot(uniform_filter1d(losses, size=100), color='blue', label='loss')
+for j in range(env_params["rewards"][0][0]):
+    ax2.plot(rewardStats[j], color=colors[j], label=env_params["reward_names"][0][j])
+ax3.clear()
+ax3.plot(uniform_filter1d(rewardsGlobal, size=100), color='black', label='global reward')
+ax4.clear()
+ax4.plot(uniform_filter1d(episodeLengths, size=100), color='yellow', label='episode length')
 # # plt.legend()
-# plt.draw()
-# plt.ioff()
-# plt.show()
+plt.draw()
+plt.ioff()
+plt.show()
 #
 # plt.plot(rewardsGlobal, color='black', label='global reward')
 # plt.plot(episodeLengths, color='yellow', label='episode length')

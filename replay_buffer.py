@@ -30,7 +30,7 @@ class ReplayBuffer:
         self.lock = threading.Lock()
         self.position = 0
         self.k = k
-        self.norm = torch.zeros(self.env_params['rewards'][0])
+        self.norm = torch.zeros(self.env_params['rewards'][0], device=device)
 
     # Store the episode
     def store_episode(self, episode_batch):
