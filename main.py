@@ -1,14 +1,12 @@
+import random
 import tqdm
 import gym
-import random
 import torch
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
-from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCar3Distance
 from wrappers.cartpole_v1_wrapper import CartPoleV1AngleEnergyRewardWrapper
-from wrappers.pendulum_wrapper import PendulumRewardWrapper
 from replay_buffer import ReplayBuffer
 from config import default_params
 from dqn import DQN
@@ -48,12 +46,12 @@ model = torch.nn.Sequential(
     torch.nn.Linear(512, 215), torch.nn.ReLU(),
     torch.nn.Linear(215, env.action_space.n))
 
-learner = DQN(model, config_params, device)
+learner = DQN(model, config_params, device, env)
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
 
 total_timesteps = int(2e5)
-update_step = 50
-batch_size = 32
+update_step = 50 # TODO: What is the effect o the update_step
+batch_size = 128 # TODO: What is the effect of the batch size?
 plot_frequency = 1000
 epsilon = 0.3
 
