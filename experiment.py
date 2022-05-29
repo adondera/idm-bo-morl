@@ -1,5 +1,6 @@
 import torch
 import tqdm
+import time
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.ndimage import uniform_filter1d
@@ -21,6 +22,7 @@ class Experiment:
         self.grad_repeats = params.get('grad_repeats', 1)
         self.batch_size = params.get('batch_size', 1024)
         self.epi_len = params.get('max_episode_length', 500)  # TODO: change 500 to a variable
+        self.render_step = params.get('render_step', 100)
 
         # Plot setup
         self.plot_frequency = params.get('plot_frequency', 100)
@@ -41,7 +43,7 @@ class Experiment:
         else:
             return None
 
-    def _run_episode(self):
+    def _run_episode(self, render=False):
         states, actions, rewards, preferences, next_states, dones = [], [], [], [], [], []
         state = self.env.reset()
         total_steps = 0
@@ -59,6 +61,10 @@ class Experiment:
             dones.append(done)
 
             state = next_state
+
+            if render:
+                self.env.render()
+                time.sleep(0.01)
 
             globalReward += z
             total_steps += 1
@@ -81,7 +87,8 @@ class Experiment:
     def run(self):
         env_steps = 0
         for e in tqdm.tqdm(range(self.max_episodes)):
-            episode = self._run_episode()
+            render = self.render_step > 0 and (e + 1) % self.render_step == 0
+            episode = self._run_episode(render)
             env_steps += episode['env_steps']
             loss = self._learn_from_episode(episode['batch'])
             if loss is not None:
