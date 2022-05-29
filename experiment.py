@@ -1,6 +1,7 @@
 import torch
 import tqdm
 import matplotlib.pyplot as plt
+import numpy as np
 from scipy.ndimage import uniform_filter1d
 
 
@@ -22,7 +23,8 @@ class Experiment:
         self.epi_len = params.get('max_episode_length', 500)  # TODO: change 500 to a variable
 
         # Plot setup
-
+        self.plot_frequency = params.get('plot_frequency', 100)
+        self.plot_train_samples = params.get('plot_train_samples', True)
         self.fig, (self.ax1, self.ax2, self.ax3) = plt.subplots(3, 1)
         plt.ion()
         plt.draw()
@@ -82,17 +84,34 @@ class Experiment:
                 self.losses.append(loss)
             self.episode_lengths.append(episode['env_steps'])
             self.global_rewards.append(episode['global_reward'])
-            if (e + 1) % 10 == 0:
-                self.plot()
+            if self.plot_frequency is not None and (e + 1) % self.plot_frequency == 0 \
+                    and len(self.losses) > 2:
+                if self.plot_train_samples:
+                    self.plot(env_steps)
+                else:
+                    self.plot()
             if env_steps >= self.max_steps:
                 break
 
-    def plot(self):
+    def plot(self, current_steps=None):
+        current_steps = current_steps if current_steps is not None else len(self.episode_lengths)
         self.ax1.clear()
-        self.ax1.plot(uniform_filter1d(self.losses, size=100), color='blue', label='loss')
+        self.ax1.plot(
+            np.linspace(1, current_steps, num=len(self.losses)),
+            uniform_filter1d(self.losses, size=100),
+            color='blue',
+            label='loss')
         self.ax2.clear()
-        self.ax2.plot(uniform_filter1d(self.global_rewards, size=100), color='black', label='global reward')
+        self.ax2.plot(
+            np.linspace(1, current_steps, num=len(self.global_rewards)),
+            uniform_filter1d(self.global_rewards, size=100),
+            color='black',
+            label='global reward')
         self.ax3.clear()
-        self.ax3.plot(uniform_filter1d(self.episode_lengths, size=100), color='yellow', label='episode length')
+        self.ax3.plot(
+            np.linspace(1, current_steps, num=len(self.episode_lengths)),
+            uniform_filter1d(self.episode_lengths, size=100),
+            color='yellow',
+            label='episode length')
         plt.draw()
         plt.pause(0.02)
