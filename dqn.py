@@ -1,9 +1,12 @@
+import random
+
 import torch
+import numpy as np
 from copy import deepcopy
 
 
 class DQN:
-    def __init__(self, model, params, device):
+    def __init__(self, model, params, device, env):
         self.device = device
         self.model = model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=params.get('lr', 5E-4))
@@ -16,15 +19,34 @@ class DQN:
         self.soft_target_update_param = params.get('soft_target_update_param', 0.1)
         self.double_q = params.get('double_q', True)
         self.all_parameters = model.parameters()
+        self.max_eps = params.get('epsilon_start', 1.0)
+        self.min_eps = params.get('epsilon_finish', 0.05)
+        self.anneal_time = int(params.get('epsilon_anneal_time', 10000))
+        self.num_decisions = 0
+
+        self.env = env
 
     def _process_input(self, states, preferences):
         processed_input = torch.cat((states, preferences), dim=-1)
         return processed_input.to(self.device)
 
+    def epsilon(self):
+        """ Returns current epsilon. """
+        return max(1 - self.num_decisions / (self.anneal_time - 1), 0) \
+               * (self.max_eps - self.min_eps) + self.min_eps
+
     def get_greedy_value(self, state, preference):
         processed_input = self._process_input(state, preference)
         out = self.model(processed_input)
         return torch.max(out, dim=-1)[1].item()
+
+    def choose_action(self, state, preference):
+        eps = self.epsilon()
+        self.num_decisions += 1
+        if np.random.rand() < eps:
+            return random.randint(0, self.env.action_space.n - 1)
+        else:
+            return self.get_greedy_value(state, preference)
 
     def target_model_update(self):
         """ This function updates the target network. """
