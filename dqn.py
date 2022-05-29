@@ -19,14 +19,21 @@ class DQN:
         self.soft_target_update_param = params.get('soft_target_update_param', 0.1)
         self.double_q = params.get('double_q', True)
         self.all_parameters = model.parameters()
-        self.epsilon_start = params.get('epsilon_start', 1)
-        self.epsilon_finish = params.get('epsilon_finish', 0.1)
-        self.epsilon_anneal_time = params.get('epsilon_anneal_time', int(5E3))
+        self.max_eps = params.get('epsilon_start', 1.0)
+        self.min_eps = params.get('epsilon_finish', 0.05)
+        self.anneal_time = int(params.get('epsilon_anneal_time', 10000))
+        self.num_decisions = 0
+
         self.env = env
 
     def _process_input(self, states, preferences):
         processed_input = torch.cat((states, preferences), dim=-1)
         return processed_input.to(self.device)
+
+    def epsilon(self):
+        """ Returns current epsilon. """
+        return max(1 - self.num_decisions / (self.anneal_time - 1), 0) \
+               * (self.max_eps - self.min_eps) + self.min_eps
 
     def get_greedy_value(self, state, preference):
         processed_input = self._process_input(state, preference)
@@ -34,7 +41,9 @@ class DQN:
         return torch.max(out, dim=-1)[1].item()
 
     def choose_action(self, state, preference):
-        if np.random.rand() < self.epsilon_finish:
+        eps = self.epsilon()
+        self.num_decisions += 1
+        if np.random.rand() < eps:
             return random.randint(0, self.env.action_space.n - 1)
         else:
             return self.get_greedy_value(state, preference)
