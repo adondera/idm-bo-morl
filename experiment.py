@@ -25,7 +25,7 @@ class Experiment:
         # Plot setup
         self.plot_frequency = params.get('plot_frequency', 100)
         self.plot_train_samples = params.get('plot_train_samples', True)
-        self.fig, (self.ax1, self.ax2, self.ax3) = plt.subplots(3, 1)
+        self.fig, (self.ax1, self.ax2, self.ax3, self.ax4) = plt.subplots(4, 1, figsize=(6, 10))
         plt.ion()
         plt.draw()
 
@@ -46,7 +46,7 @@ class Experiment:
         state = self.env.reset()
         total_steps = 0
         globalReward = 0
-        episodeLength = 0
+        cumulative_mo_rewards = [0 for _ in range(len(self.mo_rewards))]
         for t in range(self.epi_len):
             action = self.learner.choose_action(torch.from_numpy(state), torch.from_numpy(self.preference))
             next_state, (r, z), done, info = self.env.step(action)
@@ -62,9 +62,12 @@ class Experiment:
 
             globalReward += z
             total_steps += 1
+            for i, mo_reward in enumerate(r):
+                cumulative_mo_rewards[i] += mo_reward
 
             if done:
                 break
+
         episode_batch = list(
             map(lambda x: torch.tensor(x).to(self.device), [states, actions, rewards, preferences, next_states])
         )
@@ -72,6 +75,7 @@ class Experiment:
             "batch": episode_batch,
             "env_steps": total_steps,
             "global_reward": globalReward,
+            "cumulative_mo_rewards": cumulative_mo_rewards,
         }
 
     def run(self):
@@ -84,6 +88,8 @@ class Experiment:
                 self.losses.append(loss)
             self.episode_lengths.append(episode['env_steps'])
             self.global_rewards.append(episode['global_reward'])
+            for i, mo_reward in enumerate(episode['cumulative_mo_rewards']):
+                self.mo_rewards[i].append(mo_reward)
             if self.plot_frequency is not None and (e + 1) % self.plot_frequency == 0 \
                     and len(self.losses) > 2:
                 if self.plot_train_samples:
@@ -100,18 +106,33 @@ class Experiment:
             np.linspace(1, current_steps, num=len(self.losses)),
             uniform_filter1d(self.losses, size=100),
             color='blue',
-            label='loss')
+            label='Average loss')
+        self.ax1.legend()
+
         self.ax2.clear()
         self.ax2.plot(
             np.linspace(1, current_steps, num=len(self.global_rewards)),
             uniform_filter1d(self.global_rewards, size=100),
             color='black',
-            label='global reward')
+            label='Cumulative global reward')
+        self.ax2.legend()
+
         self.ax3.clear()
         self.ax3.plot(
             np.linspace(1, current_steps, num=len(self.episode_lengths)),
             uniform_filter1d(self.episode_lengths, size=100),
             color='yellow',
-            label='episode length')
+            label='Episode length')
+        self.ax3.legend()
+
+        self.ax4.clear()
+        for idx, mo_rewards in enumerate(self.mo_rewards):
+            self.ax4.plot(
+                np.linspace(1, current_steps, num=len(mo_rewards)),
+                uniform_filter1d(mo_rewards, size=100),
+                label=self.env.reward_names[idx]
+            )
+        self.ax4.legend()
+
         plt.draw()
         plt.pause(0.02)
