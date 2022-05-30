@@ -44,7 +44,7 @@ class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
         position_0, velocity_0, angle_0, angular_velocity_0 = previous_state
         delta_velocity = velocity - velocity_0
         energy = pow(delta_velocity, 2)
-        R = (1 - abs(angle), -energy)
+        R = (- abs(angle), -energy)
 
         z = reward
         self.previous_state = state
