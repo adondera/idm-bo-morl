@@ -61,7 +61,8 @@ class ReplayBuffer:
         # TODO: Is it better to add the sampled preferences in the experience buffer when storing or when sampling?
         # Adds a new randomly sampled normally distributed preference vector for each transition
         if len(criterion) <= 10:
-            mb_new_preferences = torch.rand(batch_size * self.k, mb_preference.shape[1], device=self.device)
+            mb_new_preferences = torch.abs(torch.randn(batch_size * self.k, mb_preference.shape[1], device=self.device))
+            mb_new_preferences = torch.nn.functional.normalize(mb_new_preferences, p=1, dim=1)
         else:
             mb_new_preferences = self.bayes_opt(criterion)
         # mb_new_preferences = torch.rand(batch_size * self.k, mb_preference.shape[1], device=self.device)
