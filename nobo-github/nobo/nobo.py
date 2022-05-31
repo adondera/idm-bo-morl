@@ -20,21 +20,21 @@ class _GPModel(ApproximateGP, GPyTorchModel):
     _num_outputs = 1
 
     def __init__(self, train_x, sigma=1):
-        variational_distribution = CholeskyVariationalDistribution(
-            train_x.size(0))
+        variational_distribution = CholeskyVariationalDistribution(train_x.size(0))
         variational_strategy = VariationalStrategy(
-            self, train_x, variational_distribution, learn_inducing_locations=False)
+            self, train_x, variational_distribution, learn_inducing_locations=False
+        )
         super(_GPModel, self).__init__(variational_strategy)
         self.mean_module = gpytorch.means.ConstantMean()
         self.covar_module = gpytorch.kernels.ScaleKernel(
             # gpytorch.kernels.RBFKernel(lengthscale_prior=gpytorch.priors.NormalPrior(0, sigma)))
-            gpytorch.kernels.RBFKernel())
+            gpytorch.kernels.RBFKernel()
+        )
 
     def forward(self, x):
         mean_x = self.mean_module(x)
         covar_x = self.covar_module(x)
-        latent_pred = gpytorch.distributions.MultivariateNormal(
-            mean_x, covar_x)
+        latent_pred = gpytorch.distributions.MultivariateNormal(mean_x, covar_x)
         return latent_pred
 
 
@@ -53,8 +53,7 @@ class Optimizer:
         train_y = torch.tensor(self.ys, dtype=torch.float).float()
         model = _GPModel(train_x, sigma=1)
         optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-        mll = gpytorch.mlls.VariationalELBO(
-            self.likelihood, model, train_y.numel())
+        mll = gpytorch.mlls.VariationalELBO(self.likelihood, model, train_y.numel())
 
         # Find optimal model hyperparameters
         model.train()
@@ -66,17 +65,16 @@ class Optimizer:
                 output = model(train_x)
             except RuntimeError:
                 if lr > 1e-6:
-                    print('Error in training. Trying again with lower lr')
+                    print("Error in training. Trying again with lower lr")
                     return self._train(iterations, lr / 2, verbose)
                 else:
-                    print(f'Stopping after {i} iterations. Lr = {lr}')
+                    print(f"Stopping after {i} iterations. Lr = {lr}")
                     break
             loss = -mll(output, train_y)
             loss.backward()
             # losses.append(loss.item())
             if verbose:
-                print('Iter %d/%d - Loss: %.3f' %
-                      (i + 1, iterations, loss.item()))
+                print("Iter %d/%d - Loss: %.3f" % (i + 1, iterations, loss.item()))
             # if len(losses) >= iterations and np.argmin(losses)/len(losses) < 3/4:
             # break
             optimizer.step()
@@ -101,7 +99,7 @@ class Optimizer:
         model = self._train(iterations, lr, verbose=verbose)
 
         # UCB = UpperConfidenceBound(model, beta=kappa, maximize=self.maximize)
-        UCB = UpperConfidenceBound(model, beta=.1, maximize=self.maximize)
+        UCB = UpperConfidenceBound(model, beta=0.1, maximize=self.maximize)
         print(UCB)
         print(UCB.maximize)
 
@@ -128,9 +126,12 @@ class Optimizer:
         X_baseline = train_x
         model = self._train(iterations, lr, verbose=verbose)
 
-        qNEI = qNoisyExpectedImprovement(model, X_baseline=X_baseline, prune_baseline=True,
-                                         # maximize=self.maximize
-                                         )
+        qNEI = qNoisyExpectedImprovement(
+            model,
+            X_baseline=X_baseline,
+            prune_baseline=True,
+            # maximize=self.maximize
+        )
 
         qnei_cands, qnei_vals = optimize_acqf(
             acq_function=qNEI,
@@ -153,8 +154,9 @@ class Optimizer:
         # TODO: Find multiple points more intelligently.
         # Can also use yield to allow called to get started early.
         if n > 1:
-            return list(self._random_in_bounds(n - 1)) \
-                   + self.ask(1, iterations, lr, verbose)
+            return list(self._random_in_bounds(n - 1)) + self.ask(
+                1, iterations, lr, verbose
+            )
 
         # Use random points in the beginning
         if len(self.xs) < self.initial_points:
@@ -171,12 +173,11 @@ class Optimizer:
             try:
                 latent_pred = model(torch.tensor(test_x).float())
             except RuntimeError:
-                print('Error in running model. Returning random point.')
+                print("Error in running model. Returning random point.")
                 return self._random_in_bounds()
             # Using Lower Confidnce Bound. Could be changed to something else
             # like expected improvement.
-            xstar = test_x[np.argmin(
-                latent_pred.mean - kappa * latent_pred.stddev)]
+            xstar = test_x[np.argmin(latent_pred.mean - kappa * latent_pred.stddev)]
             return self.space.inverse_transform(xstar.reshape(1, -1))
 
     def tell(self, x, y):
@@ -199,7 +200,7 @@ class Optimizer:
                 try:
                     latent_pred = model(torch.tensor(test_x).float())
                 except RuntimeError:
-                    print('Error in running model. Returning 0')
+                    print("Error in running model. Returning 0")
                     return 0, 0, 0, 0
                 # Using Lower Confidnce Bound. Could be changed to something else
                 # like expected improvement.
@@ -231,7 +232,8 @@ class Optimizer:
     def _plot_1d(self, model):
         from matplotlib import pyplot as plt
         import matplotlib
-        matplotlib.use('tkagg')
+
+        matplotlib.use("tkagg")
 
         with torch.no_grad():
             test_x = self._random_in_bounds(n=100)
@@ -240,14 +242,12 @@ class Optimizer:
 
         kappa = np.log(len(self.xs) + 1)
         _fig, ax = plt.subplots(1, 1, figsize=(4, 3))
-        ax.plot(self.xs, self.ys, 'k*', label='Observed Data')
+        ax.plot(self.xs, self.ys, "k*", label="Observed Data")
         test_x = test_x.reshape(-1)
         mean = normal.cdf(latent_pred.mean.numpy())
-        lower = normal.cdf(
-            (latent_pred.mean - kappa * latent_pred.stddev).numpy())
-        upper = normal.cdf(
-            (latent_pred.mean + kappa * latent_pred.stddev).numpy())
-        ax.plot(test_x, mean, label='Mean')
+        lower = normal.cdf((latent_pred.mean - kappa * latent_pred.stddev).numpy())
+        upper = normal.cdf((latent_pred.mean + kappa * latent_pred.stddev).numpy())
+        ax.plot(test_x, mean, label="Mean")
         ax.fill_between(test_x, upper, lower, color="#b9cfe7", edgecolor="")
         ax.set_ylim([-1, 2])
         ax.legend()
@@ -256,7 +256,8 @@ class Optimizer:
     def _plot_2d(self, model):
         from matplotlib import pyplot as plt
         import matplotlib
-        matplotlib.use('tkagg')
+
+        matplotlib.use("tkagg")
 
         with torch.no_grad():
             x = self._random_in_bounds(n=1000)
@@ -266,7 +267,7 @@ class Optimizer:
         fig, ax = plt.subplots()
         cs = ax.tricontourf(x[:, 0], x[:, 1], mean)
         x = torch.cat(self.xs, dim=0).numpy().reshape(-1, 2)
-        ax.plot(x[:, 0], x[:, 1], 'ko', ms=3)
+        ax.plot(x[:, 0], x[:, 1], "ko", ms=3)
         cbar = fig.colorbar(cs)
         plt.show()
 
