@@ -7,7 +7,7 @@ from scipy.ndimage import uniform_filter1d
 
 
 class Experiment:
-    def __init__(self, learner, buffer, env, reward_dim, preference, params, device):
+    def __init__(self, learner, buffer, env, reward_dim, preference, params, device, uncertainty=None):
         self.learner = learner
         self.buffer = buffer
         self.env = env
@@ -21,7 +21,7 @@ class Experiment:
         self.max_steps = params.get('max_steps', int(1E9))
         self.grad_repeats = params.get('grad_repeats', 1)
         self.batch_size = params.get('batch_size', 1024)
-        self.epi_len = params.get('max_episode_length', 500)  # TODO: change 500 to a variable
+        self.epi_len = params.get('max_episode_length', 500)  # TODO: change 500 to a variable based on environment
         self.render_step = params.get('render_step', 100)
 
         # Plot setup
@@ -31,12 +31,23 @@ class Experiment:
         plt.ion()
         plt.draw()
 
+        # Uncertainty
+        self.uncertainty = uncertainty
+        self.intrinsic_reward = params.get('intrinsic_reward', True) and uncertainty is not None
+
     def _learn_from_episode(self, episode):
         self.buffer.store_episode(episode)
+        self.uncertainty.observe(episode[4], episode[3])
         if self.buffer.current_size >= self.batch_size:
             total_loss = 0
             for i in range(self.grad_repeats):
-                sampled_batch = self.buffer.sample(self.batch_size)
+                sampled_batch, idxs = self.buffer.sample(self.batch_size)
+                if self.intrinsic_reward:
+                    sampled_batch['rewards'] += self.uncertainty(
+                        sampled_batch['next_states'],
+                        sampled_batch['preferences']
+                    ).unsqueeze(dim=-1)
+                    print('%.02g' % (sampled_batch['rewards'].mean().item() + 1), end=' ')
                 total_loss += self.learner.train(sampled_batch)
                 # returned the averaged loss
             return total_loss / self.grad_repeats
