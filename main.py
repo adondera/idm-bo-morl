@@ -4,10 +4,10 @@ import matplotlib
 import numpy as np
 
 from wrappers.cartpole_v1_wrapper import CartPoleV1AngleEnergyRewardWrapper
-from replay_buffer import ReplayBuffer
 from experiment import Experiment
 from config import default_params
 from dqn import DQN
+from replay_buffer import ReplayBuffer
 
 matplotlib.use('TkAgg')
 

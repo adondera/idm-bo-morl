@@ -32,7 +32,7 @@ class Experiment:
         plt.draw()
 
     def _learn_from_episode(self, episode):
-        self.buffer.store_episode(episode)
+        self.buffer.store_episode(episode, self.global_rewards)
         if self.buffer.current_size >= self.batch_size:
             total_loss = 0
             for i in range(self.grad_repeats):
