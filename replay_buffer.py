@@ -35,14 +35,14 @@ class ReplayBuffer:
         self.k = k
         self.norm = torch.zeros(self.env_params['rewards'][0], device=device)
 
-    def bayes_opt(self, output_space):
-        bo = nobo.Optimizer([skopt.utils.Real(0, 1), skopt.utils.Real(0, 1)])
-        for i in range(50):
-            x = bo.ask(verbose=False)
-            y = 0.1 * mean(output_space) + 0.9 * output_space[-1]
-            bo.tell(x, y)
-        x, lo, y, hi = bo.get_best()
-        return torch.tensor([x])
+    # def bayes_opt(self, output_space):
+    #     bo = nobo.Optimizer([skopt.utils.Real(0, 1), skopt.utils.Real(0, 1)])
+    #     for i in range(50):
+    #         x = bo.ask(verbose=False)
+    #         y = 0.1 * mean(output_space) + 0.9 * output_space[-1]
+    #         bo.tell(x, y)
+    #     x, lo, y, hi = bo.get_best()
+    #     return torch.tensor([x])
 
     # def bayes_opt(self,input_space,output_space):
     #     bo=nobo.Optimizer(input_space)
@@ -54,18 +54,17 @@ class ReplayBuffer:
     #     return torch.tensor([x])
 
     # Store the episode
-    def store_episode(self, episode_batch, criterion):
+    def store_episode(self, episode_batch):
         mb_state, mb_action, mb_reward, mb_preference, mb_next_state = episode_batch
         batch_size = mb_state.shape[0]
-
         # TODO: Is it better to add the sampled preferences in the experience buffer when storing or when sampling?
         # Adds a new randomly sampled normally distributed preference vector for each transition
-        if len(criterion) <= 10:
-            mb_new_preferences = torch.abs(torch.randn(batch_size * self.k, mb_preference.shape[1], device=self.device))
-            mb_new_preferences = torch.nn.functional.normalize(mb_new_preferences, p=1, dim=1)
-        else:
-            mb_new_preferences = self.bayes_opt(criterion)
-        # mb_new_preferences = torch.rand(batch_size * self.k, mb_preference.shape[1], device=self.device)
+        # if len(criterion) <= 10:
+        mb_new_preferences = torch.abs(torch.randn(batch_size * self.k, mb_preference.shape[1], device=self.device))
+        mb_new_preferences = torch.nn.functional.normalize(mb_new_preferences, p=1, dim=1)
+        # else:
+        #     mb_new_preferences = self.bayes_opt(criterion)
+        # # mb_new_preferences = torch.rand(batch_size * self.k, mb_preference.shape[1], device=self.device)
 
         with self.lock:
             idxs = self._get_storage_idx(inc=(self.k + 1) * batch_size)
@@ -75,7 +74,6 @@ class ReplayBuffer:
                 (self.k + 1) * batch_size, 1)
             rewards = torch.repeat_interleave(mb_reward.to(torch.float32), self.k + 1, 0)
             self.buffers['rewards'][idxs] = rewards
-            print("new:", mb_new_preferences.shape)
             self.buffers['preferences'][idxs] = torch.cat((mb_preference, mb_new_preferences))
             self.buffers['next_states'][idxs] = torch.repeat_interleave(mb_next_state, self.k + 1, 0)
             self.n_transitions_stored += batch_size * (self.k + 1)

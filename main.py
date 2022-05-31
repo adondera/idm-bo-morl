@@ -8,6 +8,7 @@ from experiment import Experiment
 from config import default_params
 from dqn import DQN
 from replay_buffer import ReplayBuffer
+import nobo, skopt
 
 matplotlib.use('TkAgg')
 
@@ -39,8 +40,26 @@ model = torch.nn.Sequential(
     torch.nn.Linear(512, 215), torch.nn.ReLU(),
     torch.nn.Linear(215, env.action_space.n))
 
-learner = DQN(model, config_params, device, env)
-buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
-experiment = Experiment(learner=learner, buffer=buffer, env=env, reward_dim=env_params["rewards"][0][0],
-                        preference=preference, params=config_params, device=device)
-experiment.run()
+
+def bayes_opt(input, output):
+    bo = nobo.Optimizer([skopt.space.Real(0,1),skopt.space.Real(0,1)])
+    for index in range(len(input)):
+        x = input[index]
+        y = output[index][0]
+        bo.tell(x, y)
+    x, lo, y, hi = bo.get_best()
+    return np.array(x, dtype=np.single)
+
+
+preferences = []
+criterions = []
+for i in range(100):
+    if i >=5:
+        preference = bayes_opt(preferences, criterions)
+    learner = DQN(model, config_params, device, env)
+    buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
+    experiment = Experiment(learner=learner, buffer=buffer, env=env, reward_dim=env_params["rewards"][0][0],
+                            preference=preference, params=config_params, device=device)
+    experiment.run()
+    preferences.append(preference)
+    criterions.append(experiment.global_rewards)

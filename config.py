@@ -10,7 +10,7 @@ def default_params():
         'run_steps': 0,  # samples whole episodes if run_steps <= 0
         'max_episode_length': 300,  # maximum number of steps per episode
         # Runner parameters
-        'max_episodes': int(1E6),  # experiment stops after this many episodes
+        'max_episodes': int(100),  # experiment stops after this many episodes
         'max_steps': int(1E9),  # experiment stops after this many steps
         'multi_runner': False,  # uses multiple runners if True
         'parallel_environments': 4,  # number of parallel runners  (only if multi_runner==True)
