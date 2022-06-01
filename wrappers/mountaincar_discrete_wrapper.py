@@ -1,11 +1,7 @@
-import numpy as np
-
-import gym
-
 from wrappers.rescaled_environment import RescaledEnv
 
 
-class DiscreteMountainCar3Distance(gym.RewardWrapper):
+class DiscreteMountainCar3Distance(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 3
@@ -28,7 +24,7 @@ class DiscreteMountainCar3Distance(gym.RewardWrapper):
         return (-distance_to_left_hill, -distance_to_start, -distance_to_right_hill), reward
 
 
-class DiscreteMountainCarVelocity(gym.RewardWrapper):
+class DiscreteMountainCarVelocity(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 1

@@ -1,7 +1,7 @@
-import gym
+from wrappers.rescaled_environment import RescaledEnv
 
 
-class CartPoleV1AngleRewardWrapper(gym.RewardWrapper):
+class CartPoleV1AngleRewardWrapper(RescaledEnv):
     """
     Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
 
@@ -9,6 +9,11 @@ class CartPoleV1AngleRewardWrapper(gym.RewardWrapper):
      - the absolute value of the angle (measured from the top) 
 
     """
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.numberPreferences = 1
+        self.reward_names = ["abs(angle)"]
 
     def reward(self, reward):
         base_env = self.env.env
@@ -20,7 +25,7 @@ class CartPoleV1AngleRewardWrapper(gym.RewardWrapper):
         # Returns (tuple of multi-objective rewards), z reward
 
 
-class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
+class CartPoleV1AngleEnergyRewardWrapper(RescaledEnv):
     """
     Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
 
