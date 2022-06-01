@@ -17,9 +17,12 @@ from RND import RNDUncertainty
 matplotlib.use("Qt5agg")
 # These configuration parameters need to be changed depending on the environment
 config_params = default_params()
-config_params["max_steps"] = int(2e5)
-config_params["intrinsic_reward"] = True
+config_params["intrinsic_reward"] = False
 config_params["k"] = 5
+
+config_params["max_steps"] = int(1e4)
+config_params["max_episodes"] = int(5e2)
+config_params["grad_repeats"] = int(1)
 
 # env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
 # env = PendulumRewardWrapper(gym.make("Pendulum-v1")) #this one doesn't work yet, because it has no env.action_space.n
@@ -67,12 +70,9 @@ optimizer = BayesianOptimization(
 optimizer.set_gp_params(alpha=1.0)
 utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0.1)
 
-config_params["max_steps"] = int(1e4)
-
-
 learner = DQN(model, config_params, device, env)
 state_size = 4
-rnd = RNDUncertainty(400, input_dim=state_size, device=device)
+rnd = RNDUncertainty(40, input_dim=state_size, device=device)
 buffer = ReplayBuffer(
     env_params, buffer_size=int(1e5), device=device, k=config_params.get("k", 1)
 )
@@ -81,7 +81,7 @@ import matplotlib.pyplot as plt
 
 
 def plot_bo(bo):
-    x = np.linspace(-2, 10, 10000)
+    x = np.linspace(0, 1, 4000)
     mean, sigma = bo._gp.predict(x.reshape(-1, 1), return_std=True)
     plt.figure(figsize=(16, 9))
     # plt.plot(x, f(x))
