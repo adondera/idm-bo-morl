@@ -1,7 +1,7 @@
-from wrappers.rescaled_environment import RescaledEnv
+import gym
 
 
-class CartPoleV1AngleRewardWrapper(RescaledEnv):
+class CartPoleV1AngleRewardWrapper(gym.RewardWrapper):
     """
     Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
 
@@ -25,7 +25,7 @@ class CartPoleV1AngleRewardWrapper(RescaledEnv):
         # Returns (tuple of multi-objective rewards), z reward
 
 
-class CartPoleV1AngleEnergyRewardWrapper(RescaledEnv):
+class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
     """
     Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
 
