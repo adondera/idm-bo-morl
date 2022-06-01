@@ -11,7 +11,7 @@ from config import default_params
 from dqn import DQN
 from RND import RNDUncertainty
 
-matplotlib.use('TkAgg')
+matplotlib.use("Qt5agg")
 
 
 class RescaledEnv:
@@ -39,6 +39,7 @@ class RescaledEnv:
     def seed(self, seed=None):
         return self.env.seed()
 
+
 # env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
 # env = PendulumRewardWrapper(gym.make("Pendulum-v1")) #this one doesn't work yet, because it has no env.action_space.n
 # env = CartPoleV1AngleEnergyRewardWrapper(gym.make("CartPole-v1"))
@@ -59,7 +60,7 @@ env_params = {
 config_params = default_params()
 config_params['max_steps'] = int(2E6)
 config_params['intrinsic_reward'] = True
-config_params['k'] = 0
+config_params['k'] = 0  # TODO: Remove this hardcoded part
 
 preference = np.array([1.0], dtype=np.single)
 

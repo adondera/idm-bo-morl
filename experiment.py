@@ -23,6 +23,7 @@ class Experiment:
         self.batch_size = params.get('batch_size', 1024)
         self.epi_len = params.get('max_episode_length', 500)  # TODO: change 500 to a variable based on environment
         self.render_step = params.get('render_step', 100)
+        self.use_last_episode = params.get('use_last_episode', True)
 
         # Plot setup
         self.plot_frequency = params.get('plot_frequency', 100)
@@ -41,7 +42,12 @@ class Experiment:
         if self.buffer.current_size >= self.batch_size:
             total_loss = 0
             for i in range(self.grad_repeats):
-                sampled_batch, idxs = self.buffer.sample(self.batch_size)
+                last_episode = None
+                if self.use_last_episode:
+                    last_episode = episode
+
+                sampled_batch, idxs = self.buffer.sample(self.batch_size, last_episode)
+
                 if self.intrinsic_reward:
                     sampled_batch['rewards'] += self.uncertainty(
                         sampled_batch['next_states'],
@@ -86,7 +92,7 @@ class Experiment:
                 break
 
         episode_batch = list(
-            map(lambda x: torch.tensor(x).to(self.device), [states, actions, rewards, preferences, next_states])
+            map(lambda x: torch.tensor(x).to(self.device), [states, actions, rewards, preferences, next_states, dones])
         )
         return {
             "batch": episode_batch,
