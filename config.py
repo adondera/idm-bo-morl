@@ -11,7 +11,7 @@ def default_params():
         'max_episode_length': 200,  # maximum number of steps per episode
         # Runner parameters
         'max_episodes': int(1E6),  # experiment stops after this many episodes
-        'max_steps': int(1E9),  # experiment stops after this many steps
+        'max_steps': int(2E5),  # experiment stops after this many steps
         'multi_runner': False,  # uses multiple runners if True
         'parallel_environments': 4,  # number of parallel runners  (only if multi_runner==True)
         # Exploration parameters
@@ -25,13 +25,13 @@ def default_params():
         'grad_norm_clip': 1,  # gradent clipping if grad norm is larger than this
         # DQN parameters
         'replay_buffer_size': int(1E5),  # the number of transitions in the replay buffer
-        'use_last_episode': True,  # whether the last episode is always sampled from the buffer
+        'use_last_episode': False,  # whether the last episode is always sampled from the buffer
         'target_model': True,  # whether a target model is used in DQN
         'target_update': 'soft',  # 'soft' target update or hard update by regular 'copy'
         'target_update_interval': 10,  # interval for the 'copy' target update
         'soft_target_update_param': 0.01,  # update parameter for the 'soft' target update
         'double_q': True,  # whether DQN uses double Q-learning
-        'grad_repeats': 1,  # how many gradient updates / runner call
+        'grad_repeats': 10,  # how many gradient updates / runner call
         # Image input parameters
         'pixel_observations': False,  # use pixel observations (we will not use this feature here)
         'pixel_resolution': (78, 78),  # scale image to this resoluton

@@ -70,12 +70,13 @@ class Experiment:
             action = self.learner.choose_action(torch.from_numpy(state), torch.from_numpy(self.preference))
             next_state, (r, z), done, info = self.env.step(action)
             # Store transitions in replay buffer
+            terminal = done and t < self.epi_len - 1
             states.append(state)
             actions.append(action)
             rewards.append(r)
             preferences.append(self.preference)
             next_states.append(next_state)
-            dones.append(done)
+            dones.append(terminal)
 
             state = next_state
 
