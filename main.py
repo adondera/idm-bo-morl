@@ -13,32 +13,11 @@ from RND import RNDUncertainty
 
 matplotlib.use("Qt5agg")
 
-
-class RescaledEnv:
-    def __init__(self, env, max_episode_length=None):
-        self.env = env
-        self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
-        if max_episode_length is not None: self.env._max_episode_steps = max_episode_length
-
-    def rescale(self, state):
-        return np.array([2 * (x - l) / (h - l) - 1 for x, (l, h) in zip(state, self.bounds)])
-
-    def step(self, action):
-        ns, r, d, x = self.env.step(action)
-        return self.rescale(ns), r, d, x
-
-    def reset(self):
-        return self.rescale(self.env.reset())
-
-    def render(self, mode="human"):
-        self.env.render(mode)
-
-    def close(self):
-        self.env.close()
-
-    def seed(self, seed=None):
-        return self.env.seed()
-
+# These configuration parameters need to be changed depending on the environment
+config_params = default_params()
+config_params['max_steps'] = int(2E5)
+config_params['intrinsic_reward'] = True
+config_params['k'] = 5
 
 # env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
 # env = PendulumRewardWrapper(gym.make("Pendulum-v1")) #this one doesn't work yet, because it has no env.action_space.n
@@ -56,11 +35,6 @@ env_params = {
     "reward_names": (env.__dict__["reward_names"], torch.StringType),
     "dones": ((1,), torch.bool)
 }
-
-config_params = default_params()
-config_params['max_steps'] = int(2E6)
-config_params['intrinsic_reward'] = True
-config_params['k'] = 0  # TODO: Remove this hardcoded part
 
 preference = np.array([1.0], dtype=np.single)
 
