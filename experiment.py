@@ -99,7 +99,7 @@ class Experiment:
             "batch": episode_batch,
             "env_steps": total_steps,
             "global_reward": globalReward,
-            "cumulative_mo_rewards": cumulative_mo_rewards,
+            "cumulative_mo_rewards": [x / total_steps for x in cumulative_mo_rewards],
         }
 
     def run(self):
