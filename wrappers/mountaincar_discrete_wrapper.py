@@ -1,9 +1,7 @@
-from typing import Tuple
-
-import gym
+from wrappers.rescaled_environment import RescaledEnv
 
 
-class DiscreteMountainCar3Distance(gym.RewardWrapper):
+class DiscreteMountainCar3Distance(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 3
@@ -26,12 +24,11 @@ class DiscreteMountainCar3Distance(gym.RewardWrapper):
         return (-distance_to_left_hill, -distance_to_start, -distance_to_right_hill), reward
 
 
-class DiscreteMountainCarVelocity(gym.RewardWrapper):
+class DiscreteMountainCarVelocity(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 1
         self.reward_names = ["current_velocity"]
-
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         """
@@ -41,6 +38,16 @@ class DiscreteMountainCarVelocity(gym.RewardWrapper):
         """
         current_position, current_velocity = self.env.unwrapped.state
         return (current_velocity,), reward
+
+
+class DiscreteMountainCarNormal(RescaledEnv):
+    def __init__(self, env, max_episode_length=None):
+        super().__init__(env, max_episode_length)
+        self.numberPreferences = 1
+        self.reward_names = ["global_reward"]
+
+    def reward(self, reward: float) -> tuple[tuple[float,], float]:
+        return (reward,), reward
 
 
 # Use this code to play the environment or for debugging purposes
