@@ -63,8 +63,8 @@ class ReplayBuffer:
         # Sample transitions
         transitions = {key: temp_buffers[key][idxs] for key in temp_buffers.keys()}
         # multiply by the normlization constant to normalize rewards
-        transitions['rewards'] = transitions['rewards'] / abs(self.norm)
-        return transitions
+        transitions['rewards'] = transitions['rewards'] # / abs(self.norm)
+        return transitions, idxs
 
     def _get_storage_idx(self, inc=None):
         inc = inc or 1

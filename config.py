@@ -8,15 +8,15 @@ def default_params():
         # Environment parameters
         'env': 'CartPole-v0',  # the environment the agent is learning in
         'run_steps': 0,  # samples whole episodes if run_steps <= 0
-        'max_episode_length': 300,  # maximum number of steps per episode
+        'max_episode_length': 200,  # maximum number of steps per episode
         # Runner parameters
         'max_episodes': int(1E6),  # experiment stops after this many episodes
         'max_steps': int(1E9),  # experiment stops after this many steps
         'multi_runner': False,  # uses multiple runners if True
         'parallel_environments': 4,  # number of parallel runners  (only if multi_runner==True)
         # Exploration parameters
-        'epsilon_anneal_time': int(5E3),  # exploration anneals epsilon over these many steps
-        'epsilon_finish': 0.1,  # annealing stops at (and keeps) this epsilon
+        'epsilon_anneal_time': int(2E4),  # exploration anneals epsilon over these many steps
+        'epsilon_finish': 0.05,  # annealing stops at (and keeps) this epsilon
         'epsilon_start': 1,  # annealing starts at this epsilon
         # Optimization parameters
         'lr': 1E-4,  # 5E-4,                       # learning rate of optimizer

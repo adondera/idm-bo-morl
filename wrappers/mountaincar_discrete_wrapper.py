@@ -1,4 +1,4 @@
-from typing import Tuple
+import numpy as np
 
 import gym
 
@@ -32,7 +32,6 @@ class DiscreteMountainCarVelocity(gym.RewardWrapper):
         self.numberPreferences = 1
         self.reward_names = ["current_velocity"]
 
-
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         """
         :param reward: The reward sampled from the environment (-1 or 0 if it reaches the goal)
@@ -42,6 +41,64 @@ class DiscreteMountainCarVelocity(gym.RewardWrapper):
         current_position, current_velocity = self.env.unwrapped.state
         return (current_velocity,), reward
 
+
+class DiscreteMountainCarNormal(gym.RewardWrapper):
+    def __init__(self, env, max_episode_length=None):
+        super().__init__(env)
+        self.env = env
+        self.numberPreferences = 1
+        self.reward_names = ["global_reward"]
+        self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
+        if max_episode_length is not None:
+            self.env._max_episode_steps = max_episode_length
+
+    def rescale(self, state):
+        return np.array([2 * (x - l) / (h - l) - 1 for x, (l, h) in zip(state, self.bounds)], dtype=np.single)
+
+    def step(self, action):
+        ns, r, d, x = self.env.step(action)
+        return self.rescale(ns), self.reward(r), d, x
+
+    def reset(self):
+        return self.rescale(self.env.reset())
+
+    def render(self, mode="human"):
+        self.env.render(mode)
+
+    def close(self):
+        self.env.close()
+
+    def seed(self, seed=None):
+        return self.env.seed()
+
+    def reward(self, reward: float) -> tuple[tuple[float,], float]:
+        return (reward,), reward
+
+
+# class RescaledEnv:
+#     def __init__(self, env, max_episode_length=None):
+#         self.env = env
+#         self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
+#         if max_episode_length is not None: self.env._max_episode_steps = max_episode_length
+#
+#     def rescale(self, state):
+#         return np.array([2 * (x - l) / (h - l) - 1 for x, (l, h) in zip(state, self.bounds)])
+#
+#     def step(self, action):
+#         ns, r, d, x = self.env.step(action)
+#         return self.rescale(ns), r, d, x
+#
+#     def reset(self):
+#         return self.rescale(self.env.reset())
+#
+#     def render(self, mode="human"):
+#         self.env.render(mode)
+#
+#     def close(self):
+#         self.env.close()
+#
+#     def seed(self, seed=None):
+#         return self.env.seed()
 
 # Use this code to play the environment or for debugging purposes
 
