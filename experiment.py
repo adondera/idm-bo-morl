@@ -17,6 +17,7 @@ class Experiment:
         self.losses = []
         self.episode_lengths = []
         self.global_rewards = []
+        self.scalarized_reward = []
         self.max_episodes = params.get('max_episodes', int(1E6))
         self.max_steps = params.get('max_steps', int(1E9))
         self.grad_repeats = params.get('grad_repeats', 1)
@@ -53,7 +54,7 @@ class Experiment:
                         sampled_batch['next_states'],
                         sampled_batch['preferences']
                     ).unsqueeze(dim=-1)
-                    print('%.02g' % (sampled_batch['rewards'].mean().item() + 1), end=' ')
+                    # print('%.02g' % (sampled_batch['rewards'].mean().item() + 1), end=' ')
                 total_loss += self.learner.train(sampled_batch)
                 # returned the averaged loss
             return total_loss / self.grad_repeats
@@ -95,11 +96,14 @@ class Experiment:
         episode_batch = list(
             map(lambda x: torch.tensor(x).to(self.device), [states, actions, rewards, preferences, next_states, dones])
         )
+        cumulative_mo_rewards = [x / total_steps for x in cumulative_mo_rewards]
         return {
             "batch": episode_batch,
             "env_steps": total_steps,
             "global_reward": globalReward,
-            "cumulative_mo_rewards": [x / total_steps for x in cumulative_mo_rewards],
+            "cumulative_mo_rewards": cumulative_mo_rewards,
+            "scalarized_reward": sum([self.preference[i] * cumulative_mo_rewards[i] for i, _ in
+                                       enumerate(cumulative_mo_rewards)])
         }
 
     def run(self):
@@ -115,6 +119,7 @@ class Experiment:
             self.global_rewards.append(episode['global_reward'])
             for i, mo_reward in enumerate(episode['cumulative_mo_rewards']):
                 self.mo_rewards[i].append(mo_reward)
+            self.scalarized_reward.append(episode['scalarized_reward'])
             if self.plot_frequency is not None and (e + 1) % self.plot_frequency == 0 \
                     and len(self.losses) > 2:
                 if self.plot_train_samples:
@@ -157,6 +162,11 @@ class Experiment:
                 uniform_filter1d(mo_rewards, size=100),
                 label=self.env.reward_names[idx]
             )
+        self.ax4.plot(
+            np.linspace(1, current_steps, num=len(self.scalarized_reward)),
+            uniform_filter1d(self.scalarized_reward, size=100),
+            label="scalarized-reward"
+        )
         self.ax4.legend()
 
         plt.draw()
