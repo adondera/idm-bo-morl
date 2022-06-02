@@ -14,7 +14,7 @@ from dqn import DQN
 from SO_RL.dqn_SO import DQN_SO
 from RND import RNDUncertainty
 
-# matplotlib.use("Qt5agg")
+matplotlib.use("Qt5agg")
 
 # These configuration parameters need to be changed depending on the environment
 config_params = default_params()
