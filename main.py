@@ -7,6 +7,7 @@ import numpy as np
 from wrappers.cartpole_v1_wrapper import CartPoleV1AngleEnergyRewardWrapper
 from config import default_params
 from dqn import DQN
+from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarNormal, DiscreteMountainCarVelocity
 from replay_buffer import ReplayBuffer
 from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarNormal
 from experiment import Experiment

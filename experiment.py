@@ -27,6 +27,7 @@ class Experiment:
         self.losses = []
         self.episode_lengths = []
         self.global_rewards = []
+        self.scalarized_reward = []
         self.max_episodes = params.get("max_episodes", int(1e6))
         self.max_steps = params.get("max_steps", int(1e9))
         self.grad_repeats = params.get("grad_repeats", 1)
@@ -122,11 +123,14 @@ class Experiment:
                 [states, actions, rewards, preferences, next_states, dones],
             )
         )
+        cumulative_mo_rewards = [x / total_steps for x in cumulative_mo_rewards]
         return {
             "batch": episode_batch,
             "env_steps": total_steps,
             "global_reward": globalReward,
             "cumulative_mo_rewards": cumulative_mo_rewards,
+            "scalarized_reward": sum([self.preference[i] * cumulative_mo_rewards[i] for i, _ in
+                                       enumerate(cumulative_mo_rewards)])
         }
 
     def run(self):
@@ -142,6 +146,7 @@ class Experiment:
             self.global_rewards.append(episode["global_reward"])
             for i, mo_reward in enumerate(episode["cumulative_mo_rewards"]):
                 self.mo_rewards[i].append(mo_reward)
+            self.scalarized_reward.append(episode['scalarized_reward'])
             if (
                 self.plot_frequency is not None
                 and (e + 1) % self.plot_frequency == 0
@@ -197,6 +202,11 @@ class Experiment:
                 uniform_filter1d(mo_rewards_norm, size=100),
                 label=self.env.reward_names[idx],
             )
+        self.ax4.plot(
+            np.linspace(1, current_steps, num=len(self.scalarized_reward)),
+            uniform_filter1d(self.scalarized_reward, size=100),
+            label="scalarized-reward"
+        )
         self.ax4.legend()
 
         plt.draw()
