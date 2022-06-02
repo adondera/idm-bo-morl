@@ -40,4 +40,5 @@ def default_params():
         'pixel_last_obs_delay': 3,  # delay between the two stacked observations
         'k': 5,  # number of preferences that are sampled in her storing
         'render_step': 100,  # number of episodes between different renders
+        'multi_objective': False, # whether to use multi or single-objective RL
     }
