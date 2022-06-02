@@ -158,6 +158,7 @@ class Experiment:
                     self.plot()
             if env_steps >= self.max_steps:
                 break
+        plt.close(self.fig)
 
     def plot(self, current_steps=None):
         current_steps = (
@@ -192,14 +193,9 @@ class Experiment:
 
         self.ax4.clear()
         for idx, mo_rewards in enumerate(self.mo_rewards):
-            # normalize rewards over the episode length ( could be more efficient than this!)
-            mo_rewards_norm = [
-                reward / length
-                for reward, length in zip(mo_rewards, self.episode_lengths)
-            ]
             self.ax4.plot(
                 np.linspace(1, current_steps, num=len(mo_rewards)),
-                uniform_filter1d(mo_rewards_norm, size=100),
+                uniform_filter1d(mo_rewards, size=100),
                 label=self.env.reward_names[idx],
             )
         self.ax4.plot(

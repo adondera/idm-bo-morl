@@ -58,18 +58,18 @@ model = torch.nn.Sequential(
 
 
 # TODO restructure code
-from bayes_opt import BayesianOptimization, UtilityFunction
+from BayesianOptimization.bayes_opt import BayesianOptimization, UtilityFunction
 from sklearn.gaussian_process.kernels import Matern
 
 optimizer = BayesianOptimization(
     f=None,
-    kernel=Matern(length_scale_bounds="fixed", nu=2.5),
+    kernel=Matern(length_scale_bounds="fixed", length_scale=0.1, nu=2.5),
     pbounds={"x": (0, 1)},
     verbose=2,
     random_state=1,
 )
-optimizer.set_gp_params(alpha=1.0)
 utility = UtilityFunction(kind="ucb", kappa=2.5, xi=0.1)
+optimizer.set_gp_params(alpha=0.1)
 
 learner = DQN(model, config_params, device, env)
 state_size = 4
@@ -80,16 +80,20 @@ buffer = ReplayBuffer(
 
 import matplotlib.pyplot as plt
 
+fig = None
 
-def plot_bo(bo):
+def plot_bo(bo, figure=None):
+    if figure:
+        plt.close(figure)
     x = np.linspace(0, 1, 4000)
     mean, sigma = bo._gp.predict(x.reshape(-1, 1), return_std=True)
-    plt.figure(figsize=(16, 9))
+    fig = plt.figure(figsize=(16, 9))
     # plt.plot(x, f(x))
     plt.plot(x, mean)
     plt.fill_between(x, mean + sigma, mean - sigma, alpha=0.1)
     plt.scatter(bo.space.params.flatten(), bo.space.target, c="red", s=50, zorder=10)
     plt.show()
+    return fig
 
 
 def reduce_dim(x):
@@ -107,12 +111,17 @@ def add_dim(x: dict):
 
 global_rewards = []
 
+# config_params['grad_repeats'] = 4
+config_params['max_steps'] = 1e5
+
 continueExperiments = True
 while continueExperiments:
     next_preference_proj = optimizer.suggest(utility)
     # TODO make preferences work with dim!=2
     next_preference = add_dim(next_preference_proj)
     print("Next preference to probe is:", next_preference)
+    learner = DQN(model, config_params, device, env)
+
     experiment = Experiment(
         learner=learner,
         buffer=buffer,
@@ -129,5 +138,5 @@ while continueExperiments:
     global_rewards.append(metric)
     optimizer.register(params=next_preference_proj, target=metric)
     optimizer.suggest(utility)
-    plot_bo(optimizer)
+    fig = plot_bo(optimizer, fig)
 
