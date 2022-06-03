@@ -39,6 +39,7 @@ def default_params():
         "intrinsic_reward": True,  # Whether we use intrinsic rewards (RND) or not
         "uncertainty_scale": 10,  # Factor with which to scale the uncertainty reward
         "k": 5,  # number of preferences that are sampled in her storing
+        'multi_objective': True,  # whether to use multi or single-objective RL
         # Image input parameters
         "pixel_observations": False,  # use pixel observations (we will not use this feature here)
         "pixel_resolution": (78, 78),  # scale image to this resoluton
