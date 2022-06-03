@@ -72,3 +72,4 @@ class BayesExperiment:
             self.optimizer.register(params=next_preference_proj, target=metric)
             self.optimizer.suggest(self.utility)
             self.plot_bo()
+        plt.show(block=True)
