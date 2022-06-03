@@ -5,7 +5,7 @@ class DiscreteMountainCar3Distance(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 3
-        self.reward_names = ["-distance_to_left_hill", "-distance_to_start", "-distance_to_right_hill"]
+        self.reward_names = ["-Distance to left hill", "-Distance to start", "-Distance to right hill"]
 
     def reward(self, reward: float) -> tuple[tuple[float, float, float], float]:
         """
@@ -28,7 +28,7 @@ class DiscreteMountainCarVelocity(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 1
-        self.reward_names = ["current_velocity"]
+        self.reward_names = ["Current velocity"]
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         """
@@ -44,7 +44,7 @@ class DiscreteMountainCarNormal(RescaledEnv):
     def __init__(self, env, max_episode_length=None):
         super().__init__(env, max_episode_length)
         self.numberPreferences = 1
-        self.reward_names = ["global_reward"]
+        self.reward_names = ["Global reward"]
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         return (reward,), reward

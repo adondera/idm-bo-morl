@@ -36,12 +36,20 @@ def default_params():
         "soft_target_update_param": 0.01,  # update parameter for the 'soft' target update
         "double_q": True,  # whether DQN uses double Q-learning
         "grad_repeats": 10,  # how many gradient updates / runner call
+        "intrinsic_reward": True,  # Whether we use intrinsic rewards (RND) or not
+        "uncertainty_scale": 10,  # Factor with which to scale the uncertainty reward
+        "k": 5,  # number of preferences that are sampled in her storing
         # Image input parameters
         "pixel_observations": False,  # use pixel observations (we will not use this feature here)
         "pixel_resolution": (78, 78),  # scale image to this resoluton
         "pixel_grayscale": True,  # convert image into grayscale
         "pixel_add_last_obs": True,  # stacks 2 observations
         "pixel_last_obs_delay": 3,  # delay between the two stacked observations
-        "k": 5,  # number of preferences that are sampled in her storing
-        "render_step": 100,  # number of episodes between different renders
+        "render_step": 100,  # Number of episodes between different renders. Set to <=0 to disable rendering
+        # Bayes optimization parameters
+        "alpha": 0.1,
+        "length_scale": 0.1,
+        "xi": 0.1,
+        "kappa": 2.5,
+        "nu": 2.5
     }
