@@ -1,9 +1,8 @@
 import gym
-import torch
 import matplotlib
 import numpy as np
+import torch
 
-from wrappers.cartpole_v1_wrapper import CartPoleV1AngleEnergyRewardWrapper
 from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarNormal
 from replay_buffer import ReplayBuffer
 from experiment import Experiment
@@ -11,37 +10,7 @@ from config import default_params
 from dqn import DQN
 from RND import RNDUncertainty
 
-matplotlib.use('TkAgg')
-
-
-class RescaledEnv:
-    def __init__(self, env, max_episode_length=None):
-        self.env = env
-        self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
-        if max_episode_length is not None: self.env._max_episode_steps = max_episode_length
-
-    def rescale(self, state):
-        return np.array([2 * (x - l) / (h - l) - 1 for x, (l, h) in zip(state, self.bounds)])
-
-    def step(self, action):
-        ns, r, d, x = self.env.step(action)
-        return self.rescale(ns), r, d, x
-
-    def reset(self):
-        return self.rescale(self.env.reset())
-
-    def render(self, mode="human"):
-        self.env.render(mode)
-
-    def close(self):
-        self.env.close()
-
-    def seed(self, seed=None):
-        return self.env.seed()
-
-# env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
-# env = PendulumRewardWrapper(gym.make("Pendulum-v1")) #this one doesn't work yet, because it has no env.action_space.n
-# env = CartPoleV1AngleEnergyRewardWrapper(gym.make("CartPole-v1"))
+matplotlib.use("Qt5agg")
 
 env = DiscreteMountainCarNormal(gym.make("MountainCar-v0"))
 
@@ -57,9 +26,11 @@ env_params = {
 }
 
 config_params = default_params()
+config_params["intrinsic_reward"] = True
+config_params["uncertainty_scale"] = 400
+config_params["k"] = 0
 config_params['max_steps'] = int(2E6)
-config_params['intrinsic_reward'] = True
-config_params['k'] = 0
+config_params["grad_repeats"] = int(10)
 
 preference = np.array([1.0], dtype=np.single)
 
@@ -73,7 +44,7 @@ model = torch.nn.Sequential(
 
 learner = DQN(model, config_params, device, env)
 buffer = ReplayBuffer(env_params, buffer_size=int(1e5), device=device, k=config_params.get('k', 1))
-rnd = RNDUncertainty(400, 2, device)
+rnd = RNDUncertainty(config_params.get("uncertainty_scale"), 2, device)
 experiment = Experiment(learner=learner, buffer=buffer, env=env, reward_dim=env_params["rewards"][0][0],
                         preference=preference, params=config_params, device=device, uncertainty=rnd)
 experiment.run()

@@ -1,13 +1,11 @@
-import numpy as np
-
-import gym
+from wrappers.rescaled_environment import RescaledEnv
 
 
-class DiscreteMountainCar3Distance(gym.RewardWrapper):
+class DiscreteMountainCar3Distance(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 3
-        self.reward_names = ["-distance_to_left_hill", "-distance_to_start", "-distance_to_right_hill"]
+        self.reward_names = ["-Distance to left hill", "-Distance to start", "-Distance to right hill"]
 
     def reward(self, reward: float) -> tuple[tuple[float, float, float], float]:
         """
@@ -26,11 +24,11 @@ class DiscreteMountainCar3Distance(gym.RewardWrapper):
         return (-distance_to_left_hill, -distance_to_start, -distance_to_right_hill), reward
 
 
-class DiscreteMountainCarVelocity(gym.RewardWrapper):
+class DiscreteMountainCarVelocity(RescaledEnv):
     def __init__(self, env):
         super().__init__(env)
         self.numberPreferences = 1
-        self.reward_names = ["current_velocity"]
+        self.reward_names = ["Current velocity"]
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         """
@@ -42,63 +40,15 @@ class DiscreteMountainCarVelocity(gym.RewardWrapper):
         return (current_velocity,), reward
 
 
-class DiscreteMountainCarNormal(gym.RewardWrapper):
+class DiscreteMountainCarNormal(RescaledEnv):
     def __init__(self, env, max_episode_length=None):
-        super().__init__(env)
-        self.env = env
+        super().__init__(env, max_episode_length)
         self.numberPreferences = 1
-        self.reward_names = ["global_reward"]
-        self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
-        if max_episode_length is not None:
-            self.env._max_episode_steps = max_episode_length
-
-    def rescale(self, state):
-        return np.array([2 * (x - l) / (h - l) - 1 for x, (l, h) in zip(state, self.bounds)], dtype=np.single)
-
-    def step(self, action):
-        ns, r, d, x = self.env.step(action)
-        return self.rescale(ns), self.reward(r), d, x
-
-    def reset(self):
-        return self.rescale(self.env.reset())
-
-    def render(self, mode="human"):
-        self.env.render(mode)
-
-    def close(self):
-        self.env.close()
-
-    def seed(self, seed=None):
-        return self.env.seed()
+        self.reward_names = ["Global reward"]
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         return (reward,), reward
 
-
-# class RescaledEnv:
-#     def __init__(self, env, max_episode_length=None):
-#         self.env = env
-#         self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
-#         if max_episode_length is not None: self.env._max_episode_steps = max_episode_length
-#
-#     def rescale(self, state):
-#         return np.array([2 * (x - l) / (h - l) - 1 for x, (l, h) in zip(state, self.bounds)])
-#
-#     def step(self, action):
-#         ns, r, d, x = self.env.step(action)
-#         return self.rescale(ns), r, d, x
-#
-#     def reset(self):
-#         return self.rescale(self.env.reset())
-#
-#     def render(self, mode="human"):
-#         self.env.render(mode)
-#
-#     def close(self):
-#         self.env.close()
-#
-#     def seed(self, seed=None):
-#         return self.env.seed()
 
 # Use this code to play the environment or for debugging purposes
 
