@@ -101,6 +101,8 @@ class SparseCartpole(gym.Wrapper):
     def __init__(self, env: MOWrapper, steps_target=200):
         super().__init__(env)
         self.steps_target = steps_target
+        self.numberPreferences = self.env.numberPreferences
+        self.reward_names = self.env.reward_names
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
