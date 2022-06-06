@@ -10,12 +10,15 @@ from wrappers.cartpole_v1_wrapper import (
 from replay_buffer import ReplayBuffer
 from config import default_params
 from bayes_experiment import BayesExperiment
+from math import pi
 
 from BayesianOptimization.bayes_opt import BayesianOptimization, UtilityFunction
 
 matplotlib.use("Qt5agg")
 
-env = SparseCartpole(CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1")))
+# env = SparseCartpole(CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1")))
+env = CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1"))
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -61,19 +64,23 @@ config_params["max_steps"] = 1e5
 
 # These parameters affect the bayesian optimization process
 alpha = 0.1
-length_scale = 0.1
-xi = 0.1
-kappa = 2.5
+length_scale = pi / 4
+xi = 100.0  # xi should be the ~half the difference between the lowest and highest score
+kappa = 10.0
 nu = 2.5
+
+# to try and optimize with negative weights, change to
+#  default_bounds = (-pi, pi)
+default_bounds = (0, pi / 2)
 
 optimizer = BayesianOptimization(
     f=None,
     kernel=Matern(length_scale_bounds="fixed", length_scale=length_scale, nu=nu),
-    pbounds={"x": (0, 1)},
+    pbounds={"x": default_bounds},
     verbose=2,
     random_state=1,
 )
-utility = UtilityFunction(kind="ucb", kappa=kappa, xi=xi)
+utility = UtilityFunction(kind="ei", kappa=kappa, xi=xi)
 optimizer.set_gp_params(alpha=alpha)
 
 buffer = ReplayBuffer(
@@ -91,6 +98,7 @@ bayes_experiment = BayesExperiment(
     device=device,
     env=env,
     env_params=env_params,
+    pbounds=default_bounds,
 )
 
 bayes_experiment.run(number_of_bayes_episodes)
