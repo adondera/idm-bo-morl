@@ -10,11 +10,17 @@ from wrappers.cartpole_v1_wrapper import (
 from replay_buffer import ReplayBuffer
 from config import default_params
 from bayes_experiment import BayesExperiment
-from math import pi
-
 from BayesianOptimization.bayes_opt import BayesianOptimization, UtilityFunction
 
-matplotlib.use("Qt5agg")
+from math import pi
+import os
+
+ 
+if os.environ.get("DESKTOP_SESSION") == "i3":
+    matplotlib.use("tkagg")
+else: 
+    matplotlib.use("Qt5agg")
+
 
 # env = SparseCartpole(CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1")))
 env = CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1"))
