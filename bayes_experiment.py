@@ -20,7 +20,18 @@ def add_dim(x: dict):
 
 
 class BayesExperiment:
-    def __init__(self, optimizer, utility, model, buffer, config_params, device, env, env_params):
+    def __init__(
+        self,
+        optimizer,
+        utility,
+        model,
+        buffer,
+        config_params,
+        device,
+        env,
+        env_params,
+        metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10) :]),
+    ):
         self.optimizer = optimizer
         self.utility = utility
         self.model = model
@@ -31,6 +42,7 @@ class BayesExperiment:
         self.env_params = env_params
         self.global_rewards = []
         self.uncertainty_scale = config_params.get("uncertainty_scale", 0)
+        self.metric_fun = metric_fun
 
         self.alpha = 0.1
 
@@ -44,13 +56,23 @@ class BayesExperiment:
             plt.plot(x, f(x))
         self.ax.plot(x, mean)
         self.ax.fill_between(x, mean + sigma, mean - sigma, alpha=0.1)
-        self.ax.scatter(self.optimizer.space.params.flatten(), self.optimizer.space.target, c="red", s=50, zorder=10)
+        self.ax.scatter(
+            self.optimizer.space.params.flatten(),
+            self.optimizer.space.target,
+            c="red",
+            s=50,
+            zorder=10,
+        )
         plt.draw()
 
     def run(self, number_of_experiments):
         for _ in range(number_of_experiments):
             learner = DQN(self.model, self.config_params, self.device, self.env)
-            rnd = RNDUncertainty(self.uncertainty_scale, input_dim=self.env_params["states"][0][0], device=self.device)
+            rnd = RNDUncertainty(
+                self.uncertainty_scale,
+                input_dim=self.env_params["states"][0][0],
+                device=self.device,
+            )
             next_preference_proj = self.optimizer.suggest(self.utility)
             # TODO make preferences work with dim!=2
             next_preference = add_dim(next_preference_proj)
@@ -67,7 +89,8 @@ class BayesExperiment:
             )
             experiment.run()
             global_rewards_experiment = experiment.global_rewards
-            metric = np.average(global_rewards_experiment)
+
+            metric = self.metric_fun(global_rewards_experiment)
             self.global_rewards.append(metric)
             self.optimizer.register(params=next_preference_proj, target=metric)
             self.optimizer.suggest(self.utility)

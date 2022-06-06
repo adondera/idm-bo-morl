@@ -1,7 +1,8 @@
 import gym
+from .mo_wrapper import MOWrapper
 
 
-class CartPoleV1AngleRewardWrapper(gym.RewardWrapper):
+class CartPoleV1AngleRewardWrapper(MOWrapper):
     """
     Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
 
@@ -25,7 +26,7 @@ class CartPoleV1AngleRewardWrapper(gym.RewardWrapper):
         # Returns (tuple of multi-objective rewards), z reward
 
 
-class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
+class CartPoleV1AngleNegEnergyRewardWrapper(MOWrapper):
     """
     Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
 
@@ -49,7 +50,7 @@ class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
         position_0, velocity_0, angle_0, angular_velocity_0 = previous_state
         delta_velocity = velocity - velocity_0
         energy = pow(delta_velocity, 2)
-        R = (- abs(angle), -energy)
+        R = (-abs(angle), -energy)
 
         z = reward
         self.previous_state = state
@@ -57,19 +58,21 @@ class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
         # Returns (tuple of multi-objective rewards), z reward
 
 
-class SparseCartpole(gym.Wrapper):
+class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
+    """
+    Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
+
+    The reward is:
+     - the absolute value of the angle (measured from the top)
+     - the energy consumed 
+
+    """
+
     def __init__(self, env):
         super().__init__(env)
-        self.total_steps = 0
         self.previous_state = None
-
         self.numberPreferences = 2
-        self.reward_names = ["1-angle", "-energy"]
-
-    def step(self, action):
-        observation, reward, done, info = self.env.step(action)
-        self.total_steps += 1
-        return observation, self.reward(reward), done, info
+        self.reward_names = ["-Angle", "Energy"]
 
     def reward(self, reward):
         base_env = self.env.env
@@ -79,12 +82,36 @@ class SparseCartpole(gym.Wrapper):
         position_0, velocity_0, angle_0, angular_velocity_0 = previous_state
         delta_velocity = velocity - velocity_0
         energy = pow(delta_velocity, 2)
-        R = (- abs(angle), -energy)
+        R = (-abs(angle), -energy)
 
-        z = 0 if self.total_steps < 200 else 1
+        z = reward
+        self.previous_state = state
+        return R, z
+        # Returns (tuple of multi-objective rewards), z reward
+
+
+class SparseCartpole(gym.Wrapper):
+    """
+    Usage:
+        env = SparseCartpole(CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1")))
+    """
+
+    total_steps = 0
+
+    def __init__(self, env: MOWrapper, steps_target=200):
+        super().__init__(env)
+        self.steps_target = steps_target
+
+    def step(self, action):
+        observation, reward, done, info = self.env.step(action)
+        self.total_steps += 1
+        return observation, self.reward(reward), done, info
+
+    def reward(self, reward):
+        R, _ = self.env.reward(reward)
+        z = 0 if self.total_steps < self.steps_target else 1
         if z == 1:
             print(z)
-        self.previous_state = state
         return R, z
 
     def reset(self, **kwargs):
