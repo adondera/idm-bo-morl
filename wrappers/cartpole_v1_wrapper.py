@@ -2,6 +2,30 @@ import gym
 from .mo_wrapper import MOWrapper
 
 
+
+class CartPoleConstRewardWrapper(MOWrapper):
+    """
+    Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
+
+    The reward is:
+     - the absolute value of the angle (measured from the top) 
+
+    """
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.numberPreferences = 2
+        self.reward_names = ["const (1)", "const (2)"]
+
+    def reward(self, reward):
+        base_env = self.env.env
+        state = base_env.state
+        position, velocity, angle, angular_velocity = state
+        R = (0.1,0.1)
+        z = reward
+        return R, z
+        # Returns (tuple of multi-objective rewards), z reward
+
 class CartPoleV1AngleRewardWrapper(MOWrapper):
     """
     Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
@@ -57,9 +81,9 @@ class CartPoleV1AngleNegEnergyRewardWrapper(MOWrapper):
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
 
-    # def reset(self, **kwargs):
-    #     self.previous_state = None
-    #     return self.env.reset(**kwargs)
+    def reset(self, **kwargs):
+        self.previous_state = None
+        return self.env.reset(**kwargs)
 
 
 class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
@@ -86,12 +110,16 @@ class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
         position_0, velocity_0, angle_0, angular_velocity_0 = previous_state
         delta_velocity = velocity - velocity_0
         energy = pow(delta_velocity, 2)
-        R = (-abs(angle), -energy)
+        R = (-abs(angle), energy)
 
         z = reward
         self.previous_state = state
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
+
+    def reset(self, **kwargs):
+        self.previous_state = None
+        return self.env.reset(**kwargs)
 
 
 class SparseCartpole(gym.Wrapper):
@@ -122,5 +150,3 @@ class SparseCartpole(gym.Wrapper):
 
     def reset(self, **kwargs):
         self.total_steps = 0
-        self.previous_state = None
-        return self.env.reset(**kwargs)

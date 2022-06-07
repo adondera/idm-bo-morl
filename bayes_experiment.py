@@ -84,6 +84,12 @@ class BayesExperiment:
 
     def run(self, number_of_experiments):
         for _ in range(number_of_experiments):
+
+            # for the first burnout_experiments
+            # next_preference_proj = sample from the prior
+            # do not .register()
+            burnin_sample = False
+
             learner = DQN(self.model, self.config_params, self.device, self.env)
             rnd = RNDUncertainty(
                 self.uncertainty_scale,
@@ -91,8 +97,9 @@ class BayesExperiment:
                 device=self.device,
             )
             next_preference_proj = self.optimizer.suggest(self.utility)
-            # TODO make preferences work with dim!=2
+
             print(next_preference_proj)
+            self.plot_bo()
             next_preference = increase_dim(next_preference_proj)
             print("Next preference to probe is:", next_preference)
             experiment = Experiment(
@@ -113,4 +120,7 @@ class BayesExperiment:
             self.optimizer.register(params=next_preference_proj, target=metric)
             self.optimizer.suggest(self.utility)
             self.plot_bo()
+            if not burnin_sample:
+                self.optimizer.register(params=next_preference_proj, target=metric)
+            # self.optimizer.suggest(self.utility)
         plt.show(block=True)
