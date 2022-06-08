@@ -1,18 +1,21 @@
-from asyncore import readwrite
 import gym
 from gym.envs.classic_control.pendulum import angle_normalize
 
 
 class PendulumRewardWrapper(gym.Wrapper):
-    def __init__(self, env):
+    def __init__(self, env, scale=None):
         super().__init__(env)
         self.numberPreferences = 4
         self.reward_names = ["angle", "angular_velocity", "torque", "energy"]
-
+        self.scale = scale
+        if scale is None:
+            self.scale = [1] * self.env.numberPreferences
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
-        return observation, self.reward(reward, action), done, info
+        (R, z) = self.reward(reward, action)
+        R = [x * self.scale[i] for i, x in enumerate(R)]
+        return observation, (R, z), done, info
 
     def reward(self, reward, action):
         base_env = self.env.env
@@ -42,8 +45,8 @@ class PendulumEnergyRewardWrapper(PendulumRewardWrapper):
         - Energy (abs of the product between torque and angular velocity)
     """
 
-    def __init__(self, env):
-        super().__init__(env)
+    def __init__(self, env, scale=None):
+        super().__init__(env, scale)
         self.numberPreferences = 2
         self.reward_names = ["angle", "energy"]
 
@@ -51,6 +54,7 @@ class PendulumEnergyRewardWrapper(PendulumRewardWrapper):
         observation, reward, done, info = self.env.step(action)
         R_0, z = self.reward(reward, action)
         R = (R_0["angle"], R_0["energy"])
+        R = [x * self.scale[i] for i, x in enumerate(R)]
         return observation, (R, z), done, info
 
 
@@ -64,15 +68,14 @@ class PendulumMultiObjectiveOriginalRewardWrapper(PendulumRewardWrapper):
         - Applied torque (action)
     """
 
-    def __init__(self, env):
-        super().__init__(env)
+    def __init__(self, env, scale=None):
+        super().__init__(env, scale)
         self.numberPreferences = 3
         self.reward_names = ["angle", "angular_velocity"]
-
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
         R_0, z = self.reward(reward, action)
         R = (R_0["angle"], R_0["angular_velocity"], R_0["torque"])
+        R = [x * self.scale[i] for i, x in enumerate(R)]
         return observation, (R, z), done, info
-
