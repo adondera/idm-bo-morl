@@ -12,28 +12,7 @@ import torch
 from math import pi
 import scipy.stats
 
-
-def reduce_dim(x: np.array or torch.tensor):
-    """
-    Project preference x to (n-1)-dimensional space
-    """
-    if type(x) == torch.Tensor:
-        x = x.numpy()
-    spherical_proj = n_sphere.convert_spherical(x)
-    return spherical_proj[1:]
-
-
-def increase_dim(x: dict or np.array):
-    """
-    Recover n-dimensional preference from (n-1)-dimensional preference
-    """
-    angles = x
-    if type(x) == dict:
-        angles = np.array(list(x.values()))
-    # 1.0 is the norm/radius, x.values() are the angles
-    l = torch.tensor(np.concatenate(([1.0], angles)), dtype=torch.float32)
-    rectangular_proj = n_sphere.convert_rectangular(l)
-    return torch.nn.functional.normalize(rectangular_proj, p=1.0, dim=0).numpy()
+from spherical_coords import reduce_dim, increase_dim
 
 
 class BayesExperiment:
@@ -68,7 +47,6 @@ class BayesExperiment:
         self.numberPreferences = int(env_params["preferences"][0][0])
 
         if not isinstance(alpha, np.ndarray) or len(alpha) != self.numberPreferences:
-            print(self.numberPreferences)
             self.alpha = np.repeat(2.0, self.numberPreferences)
         else:
             self.alpha = alpha
@@ -96,10 +74,7 @@ class BayesExperiment:
         )
         plt.draw()
 
-    def run(self, number_of_experiments):
-        prior_only_experiments = 4
-        discarded_experiments = 2 
-
+    def run(self, number_of_experiments, discarded_experiments = 2, prior_only_experiments = 4):
         for experiment_id in range(number_of_experiments):
 
             learner = DQN(self.model, self.config_params, self.device, self.env)
@@ -122,11 +97,10 @@ class BayesExperiment:
             else:
                 next_preference_proj = self.optimizer.suggest(self.utility)
 
-            print(next_preference_proj)
-
             self.plot_bo()
+
             next_preference = increase_dim(next_preference_proj)
-            print("Next preference to probe is:", next_preference)
+            print("Next preference to probe is:", next_preference, " spherical: ", next_preference_proj)
             experiment = Experiment(
                 learner=learner,
                 buffer=self.buffer,
