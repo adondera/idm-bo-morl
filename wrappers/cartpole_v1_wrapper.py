@@ -56,9 +56,9 @@ class CartPoleV1AngleEnergyRewardWrapper(gym.RewardWrapper):
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
 
-    # def reset(self, **kwargs):
-    #     self.previous_state = None
-    #     return self.env.reset(**kwargs)
+    def reset(self, **kwargs):
+        self.previous_state = None
+        return self.env.reset(**kwargs)
 
 
 class SparseCartpole(gym.Wrapper):

@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import wandb
 
 from dqn import DQN
 from experiment import Experiment
@@ -33,6 +34,8 @@ class BayesExperiment:
         self.uncertainty_scale = config_params.get("uncertainty_scale", 0)
 
         self.alpha = 0.1
+
+        wandb.init(project="test-project", entity="idm-morl-bo")
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
@@ -72,4 +75,7 @@ class BayesExperiment:
             self.optimizer.register(params=next_preference_proj, target=metric)
             self.optimizer.suggest(self.utility)
             self.plot_bo()
+        wandb.log({
+            "Final plot": self.fig
+        })
         plt.show(block=True)
