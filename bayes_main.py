@@ -66,7 +66,7 @@ config_params["uncertainty_scale"] = 0
 config_params["k"] = 5
 config_params["max_episodes"] = int(5e2)
 config_params["grad_repeats"] = int(1)
-config_params["max_steps"] = 1e5
+config_params["max_steps"] = 1e4
 
 # These parameters affect the bayesian optimization process
 alpha = 0.1
@@ -93,7 +93,7 @@ buffer = ReplayBuffer(
     env_params, buffer_size=int(1e5), device=device, k=config_params.get("k", 1)
 )
 
-number_of_bayes_episodes = 10
+number_of_bayes_episodes = 20
 
 bayes_experiment = BayesExperiment(
     optimizer=optimizer,

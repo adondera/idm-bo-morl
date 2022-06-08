@@ -84,7 +84,7 @@ class DQN:
             return qvalues
 
     def train(self, batch):
-        """ Performs one gradient decent step of DQN. """
+        """ Performs one gradient descent step of DQN. """
         self.model.train(True)
         # Compute TD-loss. We multiply with the preferences here to obtain a single reward.
         targets = torch.sum(batch['rewards'] * batch['preferences'], dim=-1).unsqueeze(-1) + self.gamma * (

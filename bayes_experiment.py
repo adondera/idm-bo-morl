@@ -1,3 +1,4 @@
+from unicodedata import numeric
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -9,6 +10,7 @@ from RND import RNDUncertainty
 from n_sphere import n_sphere
 import torch
 from math import pi
+import scipy.stats
 
 
 def reduce_dim(x: np.array or torch.tensor):
@@ -46,6 +48,7 @@ class BayesExperiment:
         env,
         env_params,
         pbounds=(-pi, pi),
+        alpha : np.array = None,
         metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10) :]),
     ):
         self.optimizer = optimizer
@@ -61,17 +64,28 @@ class BayesExperiment:
         self.pbounds = pbounds
         self.metric_fun = metric_fun
 
-        self.alpha = 0.1
+
+        self.numberPreferences = int(env_params["preferences"][0][0])
+
+        if not isinstance(alpha, np.ndarray) or len(alpha) != self.numberPreferences:
+            print(self.numberPreferences)
+            self.alpha = np.repeat(2.0, self.numberPreferences)
+        else:
+            self.alpha = alpha
+
+        # TODO make into param
+        self.prior = scipy.stats.dirichlet(alpha=self.alpha)
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
-    def plot_bo(self, f=None):
+    def plot_bo(self, discarded_points = ([],[]), f=None):
         x = np.linspace(self.pbounds[0], self.pbounds[1], 4000)
         mean, sigma = self.optimizer._gp.predict(x.reshape(-1, 1), return_std=True)
         self.ax.clear()
         if f:
             plt.plot(x, f(x))
         self.ax.plot(x, mean)
+        # acq_max = self.optimizer
         self.ax.fill_between(x, mean + sigma, mean - sigma, alpha=0.1)
         self.ax.scatter(
             self.optimizer.space.params.flatten(),
@@ -83,12 +97,10 @@ class BayesExperiment:
         plt.draw()
 
     def run(self, number_of_experiments):
-        for _ in range(number_of_experiments):
+        prior_only_experiments = 4
+        discarded_experiments = 2 
 
-            # for the first burnout_experiments
-            # next_preference_proj = sample from the prior
-            # do not .register()
-            burnin_sample = False
+        for experiment_id in range(number_of_experiments):
 
             learner = DQN(self.model, self.config_params, self.device, self.env)
             rnd = RNDUncertainty(
@@ -96,9 +108,22 @@ class BayesExperiment:
                 input_dim=self.env_params["states"][0][0],
                 device=self.device,
             )
-            next_preference_proj = self.optimizer.suggest(self.utility)
+            
+            # for the first burnout_experiments
+            # next_preference_proj = sample from the prior
+            # do not .register()
+
+            prior_only_sample = experiment_id < prior_only_experiments
+            discard_sample =  experiment_id < discarded_experiments
+                
+            if prior_only_sample:
+                next_preference = self.prior.rvs(size=1).squeeze()
+                next_preference_proj = reduce_dim(next_preference)
+            else:
+                next_preference_proj = self.optimizer.suggest(self.utility)
 
             print(next_preference_proj)
+
             self.plot_bo()
             next_preference = increase_dim(next_preference_proj)
             print("Next preference to probe is:", next_preference)
@@ -117,10 +142,11 @@ class BayesExperiment:
 
             metric = self.metric_fun(global_rewards_experiment)
             self.global_rewards.append(metric)
-            self.optimizer.register(params=next_preference_proj, target=metric)
-            self.optimizer.suggest(self.utility)
-            self.plot_bo()
-            if not burnin_sample:
+            if not discard_sample:
                 self.optimizer.register(params=next_preference_proj, target=metric)
+            else:
+                print("Discarding sample: ", next_preference_proj, metric)
+
             # self.optimizer.suggest(self.utility)
+            self.plot_bo()
         plt.show(block=True)

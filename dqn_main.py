@@ -12,13 +12,13 @@ from config import default_params
 from dqn import DQN
 from RND import RNDUncertainty
 
-# if os.environ.get("DESKTOP_SESSION") == "i3":
-#     matplotlib.use("tkagg")
-# else: 
-matplotlib.use("Qt5agg")
+if os.environ.get("DESKTOP_SESSION") == "i3":
+    matplotlib.use("tkagg")
+else: 
+    matplotlib.use("Qt5agg")
 
 # env = DiscreteMountainCarNormal(gym.make("MountainCar-v0"))
-env = CartPoleConstRewardWrapper(gym.make("CartPole-v1"))
+env = CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1"))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
