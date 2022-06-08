@@ -4,6 +4,8 @@ import torch
 import numpy as np
 from copy import deepcopy
 
+from spherical_coords import reduce_dim, increase_dim
+
 
 class DQN:
     def __init__(self, model, params, device, env):
@@ -26,7 +28,16 @@ class DQN:
 
         self.env = env
 
-    def _process_input(self, states, preferences):
+    def _process_input(self, states, preferences: torch.Tensor):
+        # TEMPORARY map preferences to lower dim
+        # we should generate them directly in the lower-dim space
+        if preferences.ndim ==1: # I know this is ugly but I had no clue how to fix it
+            preferences = torch.tensor(reduce_dim(preferences), dtype=torch.float32)
+        else:
+            preferences = torch.stack([
+                torch.tensor(reduce_dim(p), dtype=torch.float32) for p in torch.unbind(preferences, dim=0)
+            ], dim=0)
+
         processed_input = torch.cat((states, preferences), dim=-1)
         return processed_input.to(self.device)
 

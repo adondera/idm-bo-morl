@@ -38,7 +38,7 @@ env_params = {
 }
 
 model = torch.nn.Sequential(
-    torch.nn.Linear(env_params["states"][0][0] + env_params["rewards"][0][0], 215),
+    torch.nn.Linear(env_params["states"][0][0] + env_params["rewards"][0][0]-1, 215),
     torch.nn.ReLU(),
     torch.nn.Linear(215, 512),
     torch.nn.ReLU(),
