@@ -66,11 +66,11 @@ config_params["uncertainty_scale"] = 0
 # These parameters refer to the DDQN agent. Again, dependent on the environment.
 config_params["k"] = 5
 config_params["grad_repeats"] = int(1)
-config_params["max_episodes"] = int(1e2)
-config_params["max_steps"] = 2e4
+config_params["max_episodes"] = int(1e2) /50
+config_params["max_steps"] = 2e4 /50
 
 #TODO add to default_params()
-config_params["number_BO_episodes"] = 50
+config_params["number_BO_episodes"] = 20
 
 """
     `discarded_experiments_length_factor` = n will make the initial experiments n times longer
@@ -78,8 +78,8 @@ config_params["number_BO_episodes"] = 50
 config_params["discarded_experiments_length_factor"] = 5.0
 
 number_BO_episodes = config_params["number_BO_episodes"]
-config_params["discarded_experiments"] = max(2,number_BO_episodes/10)
-config_params["prior_only_experiments"] = max(4, number_BO_episodes/5)
+config_params["discarded_experiments"] = 4 #max(2,number_BO_episodes/10)
+config_params["prior_only_experiments"] = 8 #max(4, number_BO_episodes/5)
 
 # These parameters affect the bayesian optimization process
 alpha = 0.1
@@ -96,7 +96,7 @@ dirichlet_alpha = np.array([5.0])
 optimizer = BayesianOptimization(
     f=None,
     kernel=Matern(length_scale_bounds="fixed", length_scale=length_scale, nu=nu),
-    pbounds={"x": default_bounds},
+    pbounds=([default_bounds]*int(env_params["preferences"][0][0]-1)),
     verbose=2,
     random_state=1,
 )
