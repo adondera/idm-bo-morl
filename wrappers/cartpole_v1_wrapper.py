@@ -44,7 +44,7 @@ class CartPoleNoisyRewardWrapper(MOWrapper):
         base_env = self.env.env
         state = base_env.state
         position, velocity, angle, angular_velocity = state
-        R = (-abs(angle), -random.random())
+        R = (-abs(angle), -random.random()/2)
         z = reward
         return R, z
         # Returns (tuple of multi-objective rewards), z reward

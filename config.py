@@ -36,8 +36,11 @@ def default_params():
         "soft_target_update_param": 0.01,  # update parameter for the 'soft' target update
         "double_q": True,  # whether DQN uses double Q-learning
         "grad_repeats": 10,  # how many gradient updates / runner call
+        # RND parameters
         "intrinsic_reward": True,  # Whether we use intrinsic rewards (RND) or not
         "uncertainty_scale": 10,  # Factor with which to scale the uncertainty reward
+        "preference_dim": 0,  # Dimension of preferences. Default value of 0 means preference is not taken into account
+        # MO parameters
         "k": 5,  # number of preferences that are sampled in her storing
         'multi_objective': True,  # whether to use multi or single-objective RL
         "norm": 1,  # The power at which each objective reward is raised (e.g. 2 ==> quadratic rewards)

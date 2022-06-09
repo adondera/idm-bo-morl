@@ -4,9 +4,10 @@ import matplotlib
 from sklearn.gaussian_process.kernels import Matern
 
 from wrappers.cartpole_v1_wrapper import (
-    CartPoleV1AngleNegEnergyRewardWrapper,
     SparseCartpole,
+    CartPoleNoisyRewardWrapper
 )
+from wrappers.mo_wrapper import RescaledReward
 from replay_buffer import ReplayBuffer
 from config import default_params
 from bayes_experiment import BayesExperiment
@@ -16,16 +17,12 @@ from math import pi
 import numpy as np
 import os
 
- 
 if os.environ.get("DESKTOP_SESSION") == "i3":
     matplotlib.use("tkagg")
-else: 
+else:
     matplotlib.use("Qt5agg")
 
-
-# env = SparseCartpole(CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1")))
-env = CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1"))
-
+env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -62,24 +59,25 @@ config_params[
 # the more important intrinsic rewards will be. Depends from environment to environment, requires tweaking.
 config_params["intrinsic_reward"] = False
 config_params["uncertainty_scale"] = 0
+config_params["preference_dim"] = env_params["preferences"][0][0]
 
 # These parameters refer to the DDQN agent. Again, dependent on the environment.
-config_params["k"] = 5
+config_params["k"] = 10
 config_params["grad_repeats"] = int(1)
-config_params["max_episodes"] = int(1e2) /50
-config_params["max_steps"] = 2e4 /50
+config_params['max_steps'] = int(2E5)
+config_params['max_episodes'] = int(1e3)
 
-#TODO add to default_params()
-config_params["number_BO_episodes"] = 20
+# TODO add to default_params()
+config_params["number_BO_episodes"] = 5
 
 """
     `discarded_experiments_length_factor` = n will make the initial experiments n times longer
 """
-config_params["discarded_experiments_length_factor"] = 5.0
+config_params["discarded_experiments_length_factor"] = 1
 
 number_BO_episodes = config_params["number_BO_episodes"]
-config_params["discarded_experiments"] = 4 #max(2,number_BO_episodes/10)
-config_params["prior_only_experiments"] = 8 #max(4, number_BO_episodes/5)
+config_params["discarded_experiments"] = 0  # max(2,number_BO_episodes/10)
+config_params["prior_only_experiments"] = 0  # max(4, number_BO_episodes/5)
 
 # These parameters affect the bayesian optimization process
 alpha = 0.1
@@ -96,11 +94,11 @@ dirichlet_alpha = np.array([5.0])
 optimizer = BayesianOptimization(
     f=None,
     kernel=Matern(length_scale_bounds="fixed", length_scale=length_scale, nu=nu),
-    pbounds=([default_bounds]*int(env_params["preferences"][0][0]-1)),
+    pbounds=([default_bounds] * int(env_params["preferences"][0][0] - 1)),
     verbose=2,
     random_state=1,
 )
-utility = UtilityFunction(kind="ei", kappa=kappa, xi=xi)
+utility = UtilityFunction(kind="ucb", kappa=kappa, xi=xi)
 optimizer.set_gp_params(alpha=alpha)
 
 buffer = ReplayBuffer(

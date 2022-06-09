@@ -17,18 +17,18 @@ from spherical_coords import reduce_dim, increase_dim
 
 class BayesExperiment:
     def __init__(
-        self,
-        optimizer,
-        utility,
-        model,
-        buffer,
-        config_params,
-        device,
-        env,
-        env_params,
-        pbounds=(-pi, pi),
-        dirichlet_alpha : np.array = None,
-        metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10) :]),
+            self,
+            optimizer,
+            utility,
+            model,
+            buffer,
+            config_params,
+            device,
+            env,
+            env_params,
+            pbounds=(-pi, pi),
+            dirichlet_alpha: np.array = None,
+            metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10):]),
     ):
         self.optimizer = optimizer
         self.utility = utility
@@ -43,8 +43,7 @@ class BayesExperiment:
         self.uncertainty_scale = config_params.get("uncertainty_scale", 0)
         self.pbounds = pbounds
         self.metric_fun = metric_fun
-        self.discarded_rewards = ([],[])
-
+        self.discarded_rewards = ([], [])
 
         self.numberPreferences = int(env_params["preferences"][0][0])
 
@@ -57,7 +56,6 @@ class BayesExperiment:
         self.prior = scipy.stats.dirichlet(alpha=self.dirichlet_alpha)
 
         wandb.init(project="test-project", entity="idm-morl-bo", tags=["Bayes", env.spec.id], config=self.config_params)
-
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
@@ -80,19 +78,19 @@ class BayesExperiment:
         self.ax.scatter(self.discarded_rewards[0], self.discarded_rewards[1], c="red", marker='X')
         plt.draw()
 
-    def run(self, number_of_experiments = None):
+    def run(self, number_of_experiments=None):
         preference_table = wandb.Table(columns=[i for i in range(self.env.numberPreferences)])
         if number_of_experiments is None:
             number_of_experiments = self.config_params.get("number_BO_experiments", 20)
 
-        discarded_experiments = self.config_params.get("discarded_experiments", int(number_of_experiments/10))
+        discarded_experiments = self.config_params.get("discarded_experiments", int(number_of_experiments / 10))
         discarded_experiments_length_factor = self.config_params.get("discarded_experiments_length_factor", 1.0)
-        prior_only_experiments = self.config_params.get("prior_only_experiments", int(number_of_experiments/5))
+        prior_only_experiments = self.config_params.get("prior_only_experiments", int(number_of_experiments / 5))
         print(f"Running {discarded_experiments}")
         for experiment_id in range(number_of_experiments):
 
             prior_only_sample = experiment_id < prior_only_experiments
-            discard_sample =  experiment_id < discarded_experiments
+            discard_sample = experiment_id < discarded_experiments
             length_factor = discarded_experiments_length_factor if discard_sample else 1.0
 
             self.config_params["max_episodes"] = int(self.config_params_original["max_episodes"] * length_factor)
@@ -101,7 +99,8 @@ class BayesExperiment:
             learner = DQN(self.model, self.config_params, self.device, self.env)
             rnd = RNDUncertainty(
                 self.uncertainty_scale,
-                input_dim=self.env_params["states"][0][0],
+                state_dim=self.env_params["states"][0][0],
+                preference_dim=self.config_params["preference_dim"],
                 device=self.device,
             )
 
@@ -151,8 +150,9 @@ class BayesExperiment:
         measured_max = self.optimizer.max
         measured_max = measured_max["target"], measured_max["params"], increase_dim(measured_max["params"])
         # TODO print max of the GP mean
-        #gp_max = self.optimizer.space.target.argmax()
-        print(f"The maximum is: {measured_max[0]}, preference={measured_max[2]} (spherical: {list(measured_max[1].values())})")
+        # gp_max = self.optimizer.space.target.argmax()
+        print(
+            f"The maximum is: {measured_max[0]}, preference={measured_max[2]} (spherical: {list(measured_max[1].values())})")
         wandb.log({
             "Preferences": preference_table
         })

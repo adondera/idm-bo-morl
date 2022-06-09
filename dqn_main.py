@@ -13,6 +13,11 @@ from config import default_params
 from dqn import DQN
 from RND import RNDUncertainty
 
+
+def metric_fun(x):
+    return np.average(x[int(len(x) * 9 / 10):]),
+
+
 # if os.environ.get("DESKTOP_SESSION") == "i3":
 #     matplotlib.use("tkagg")
 # else:
@@ -34,18 +39,18 @@ env_params = {
 config_params = default_params()
 config_params["intrinsic_reward"] = False
 config_params["uncertainty_scale"] = 400
-config_params["k"] = 5
+config_params["k"] = 0
 config_params['max_steps'] = int(2E5)
-config_params['max_episodes'] = int(1e4)
+config_params['max_episodes'] = int(1e3)
 config_params["grad_repeats"] = int(1)
 config_params['render_step'] = 0
+preference = np.array([0.5, 0.5], dtype=np.single)
 
-wandb.init(project="test-project", entity="idm-morl-bo", tags=["DQN", env.spec.id], config=config_params)
-
-preference = np.array([1., 0.], dtype=np.single)
-
+wandb.init(project="test-project", entity="idm-morl-bo", tags=["MO-DQN", env.spec.id], config=config_params)
+preference_table = wandb.Table(columns=[i for i in range(env.numberPreferences)])
+preference_table.add_data(*preference)
 wandb.log({
-    "Preference": preference
+    "Preference": preference_table
 })
 
 model = torch.nn.Sequential(
@@ -62,6 +67,9 @@ rnd = RNDUncertainty(config_params.get("uncertainty_scale"), env.observation_spa
 experiment = Experiment(learner=learner, buffer=buffer, env=env, reward_dim=env_params["rewards"][0][0],
                         preference=preference, params=config_params, device=device, uncertainty=rnd)
 experiment.run()
+
 wandb.log({
     f"Experiment plot": experiment.fig,
+    f"Global reward metric": metric_fun(experiment.global_rewards),
+    f"Episode length metric": metric_fun(experiment.episode_lengths)
 })
