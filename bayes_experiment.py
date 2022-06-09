@@ -27,7 +27,7 @@ class BayesExperiment:
         env,
         env_params,
         pbounds=(-pi, pi),
-        alpha : np.array = None,
+        dirichlet_alpha : np.array = None,
         metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10) :]),
     ):
         self.optimizer = optimizer
@@ -35,6 +35,7 @@ class BayesExperiment:
         self.model = model
         self.buffer = buffer
         self.config_params = config_params
+        self.config_params_original = config_params.copy()
         self.device = device
         self.env = env
         self.env_params = env_params
@@ -46,13 +47,13 @@ class BayesExperiment:
 
         self.numberPreferences = int(env_params["preferences"][0][0])
 
-        if not isinstance(alpha, np.ndarray) or len(alpha) != self.numberPreferences:
-            self.alpha = np.repeat(2.0, self.numberPreferences)
+        if not isinstance(dirichlet_alpha, np.ndarray) or len(dirichlet_alpha) != self.numberPreferences:
+            self.dirichlet_alpha = np.repeat(2.0, self.numberPreferences)
         else:
-            self.alpha = alpha
+            self.dirichlet_alpha = dirichlet_alpha
 
         # TODO make into param
-        self.prior = scipy.stats.dirichlet(alpha=self.alpha)
+        self.prior = scipy.stats.dirichlet(alpha=self.dirichlet_alpha)
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
@@ -74,8 +75,22 @@ class BayesExperiment:
         )
         plt.draw()
 
-    def run(self, number_of_experiments, discarded_experiments = 2, prior_only_experiments = 4):
+    def run(self, number_of_experiments = None):
+        if number_of_experiments is None:
+            number_of_experiments = self.config_params.get("number_BO_experiments", 20)
+
+        discarded_experiments = self.config_params.get("discarded_experiments", int(number_of_experiments/10))
+        discarded_experiments_length_factor = self.config_params.get("discarded_experiments_length_factor", 1.0)
+        prior_only_experiments = self.config_params.get("prior_only_experiments", int(number_of_experiments/5))
+        print(f"Running {discarded_experiments}")
         for experiment_id in range(number_of_experiments):
+
+            prior_only_sample = experiment_id < prior_only_experiments
+            discard_sample =  experiment_id < discarded_experiments
+            length_factor = discarded_experiments_length_factor if discard_sample else 1.0 
+
+            self.config_params["max_episodes"] = int(self.config_params_original["max_episodes"] * length_factor)
+            self.config_params["max_steps"] = int(self.config_params_original["max_steps"] * length_factor)
 
             learner = DQN(self.model, self.config_params, self.device, self.env)
             rnd = RNDUncertainty(
@@ -83,21 +98,12 @@ class BayesExperiment:
                 input_dim=self.env_params["states"][0][0],
                 device=self.device,
             )
-            
-            # for the first burnout_experiments
-            # next_preference_proj = sample from the prior
-            # do not .register()
-
-            prior_only_sample = experiment_id < prior_only_experiments
-            discard_sample =  experiment_id < discarded_experiments
                 
             if prior_only_sample:
                 next_preference = self.prior.rvs(size=1).squeeze()
                 next_preference_proj = reduce_dim(next_preference)
             else:
                 next_preference_proj = self.optimizer.suggest(self.utility)
-
-            self.plot_bo()
 
             next_preference = increase_dim(next_preference_proj)
             print("Next preference to probe is:", next_preference, " spherical: ", next_preference_proj)
