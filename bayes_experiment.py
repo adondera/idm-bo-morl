@@ -1,10 +1,10 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import wandb
 
 from dqn import DQN
 from experiment import Experiment
 from RND import RNDUncertainty
-
 
 from n_sphere import n_sphere
 import torch
@@ -36,17 +36,17 @@ def increase_dim(x: dict or np.array):
 
 class BayesExperiment:
     def __init__(
-        self,
-        optimizer,
-        utility,
-        model,
-        buffer,
-        config_params,
-        device,
-        env,
-        env_params,
-        pbounds=(-pi, pi),
-        metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10) :]),
+            self,
+            optimizer,
+            utility,
+            model,
+            buffer,
+            config_params,
+            device,
+            env,
+            env_params,
+            pbounds=(-pi, pi),
+            metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10):]),
     ):
         self.optimizer = optimizer
         self.utility = utility
@@ -62,6 +62,9 @@ class BayesExperiment:
         self.metric_fun = metric_fun
 
         self.alpha = 0.1
+
+        wandb.init(project="test-project", entity="idm-morl-bo", tags=["Bayes", env.spec.id], config=self.config_params)
+
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
@@ -83,7 +86,8 @@ class BayesExperiment:
         plt.draw()
 
     def run(self, number_of_experiments):
-        for _ in range(number_of_experiments):
+        preference_table = wandb.Table(columns=[i for i in range(self.env.numberPreferences)])
+        for experiment_number in range(number_of_experiments):
 
             # for the first burnout_experiments
             # next_preference_proj = sample from the prior
@@ -113,6 +117,9 @@ class BayesExperiment:
                 uncertainty=rnd,
             )
             experiment.run()
+            wandb.log({
+                f"Experiment {experiment_number} plot": experiment.fig,
+            })
             global_rewards_experiment = experiment.global_rewards
 
             metric = self.metric_fun(global_rewards_experiment)
@@ -122,5 +129,15 @@ class BayesExperiment:
             self.plot_bo()
             if not burnin_sample:
                 self.optimizer.register(params=next_preference_proj, target=metric)
+            preference_table.add_data(*next_preference.tolist())
+            wandb.log({
+                "Target": metric
+            })
             # self.optimizer.suggest(self.utility)
+            wandb.log({
+                "BO plot": wandb.Image(self.fig)
+            })
+        wandb.log({
+            "Preferences": preference_table
+        })
         plt.show(block=True)

@@ -1,11 +1,10 @@
-import os
 import gym
 import matplotlib
 import numpy as np
 import torch
-from wrappers.cartpole_v1_wrapper import CartPoleConstRewardWrapper, CartPoleV1AngleNegEnergyRewardWrapper, CartPoleV1AnglePosEnergyRewardWrapper
+import wandb
+from wrappers.cartpole_v1_wrapper import CartPoleConstRewardWrapper
 
-from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarNormal
 from replay_buffer import ReplayBuffer
 from experiment import Experiment
 from config import default_params
@@ -17,7 +16,6 @@ from RND import RNDUncertainty
 # else: 
 matplotlib.use("Qt5agg")
 
-# env = DiscreteMountainCarNormal(gym.make("MountainCar-v0"))
 env = CartPoleConstRewardWrapper(gym.make("CartPole-v1"))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -38,7 +36,13 @@ config_params["k"] = 0
 config_params['max_steps'] = int(2E6)
 config_params["grad_repeats"] = int(1)
 
-preference = np.array([0.,1.], dtype=np.single)
+wandb.init(project="test-project", entity="idm-morl-bo", tags=["DQN", env.spec.id], config=config_params)
+
+preference = np.array([0., 1.], dtype=np.single)
+
+wandb.log({
+    "Preference": preference
+})
 
 model = torch.nn.Sequential(
     torch.nn.Linear(env_params['states'][0][0] + env_params["rewards"][0][0], 215), torch.nn.ReLU(),
@@ -54,3 +58,6 @@ rnd = RNDUncertainty(config_params.get("uncertainty_scale"), env.observation_spa
 experiment = Experiment(learner=learner, buffer=buffer, env=env, reward_dim=env_params["rewards"][0][0],
                         preference=preference, params=config_params, device=device, uncertainty=rnd)
 experiment.run()
+wandb.log({
+    f"Experiment plot": experiment.fig,
+})
