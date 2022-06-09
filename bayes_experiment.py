@@ -43,6 +43,7 @@ class BayesExperiment:
         self.uncertainty_scale = config_params.get("uncertainty_scale", 0)
         self.pbounds = pbounds
         self.metric_fun = metric_fun
+        self.discarded_rewards = ([],[])
 
 
         self.numberPreferences = int(env_params["preferences"][0][0])
@@ -57,7 +58,7 @@ class BayesExperiment:
 
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
-    def plot_bo(self, discarded_points = ([],[]), f=None):
+    def plot_bo(self, f=None):
         x = np.linspace(self.pbounds[0], self.pbounds[1], 4000)
         mean, sigma = self.optimizer._gp.predict(x.reshape(-1, 1), return_std=True)
         self.ax.clear()
@@ -73,6 +74,7 @@ class BayesExperiment:
             s=50,
             zorder=10,
         )
+        self.ax.scatter(self.discarded_rewards[0], self.discarded_rewards[1], c="red", marker='X')
         plt.draw()
 
     def run(self, number_of_experiments = None):
@@ -121,12 +123,19 @@ class BayesExperiment:
             global_rewards_experiment = experiment.global_rewards
 
             metric = self.metric_fun(global_rewards_experiment)
-            self.global_rewards.append(metric)
             if not discard_sample:
+                self.global_rewards.append(metric)
                 self.optimizer.register(params=next_preference_proj, target=metric)
             else:
+                self.discarded_rewards[0].append(next_preference_proj)
+                self.discarded_rewards[1].append(metric)
                 print("Discarding sample: ", next_preference_proj, metric)
 
-            # self.optimizer.suggest(self.utility)
+            self.optimizer.suggest(self.utility)
             self.plot_bo()
+        measured_max = self.optimizer.max
+        measured_max = measured_max["target"], measured_max["params"], increase_dim(measured_max["params"])
+        # TODO print max of the GP mean
+        #gp_max = self.optimizer.space.target.argmax()
+        print(f"The maximum is: {measured_max[0]}, preference={measured_max[2]} (spherical: {list(measured_max[1].values())})")
         plt.show(block=True)
