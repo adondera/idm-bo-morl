@@ -4,7 +4,8 @@ import matplotlib
 import numpy as np
 import torch
 import wandb
-from wrappers.cartpole_v1_wrapper import CartPoleConstRewardWrapper
+from wrappers.cartpole_v1_wrapper import CartPoleNoisyRewardWrapper, SparseCartpole
+from wrappers.mo_wrapper import RescaledReward
 
 from replay_buffer import ReplayBuffer
 from experiment import Experiment
@@ -17,7 +18,7 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-env = CartPoleConstRewardWrapper(gym.make("CartPole-v1"))
+env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -33,8 +34,8 @@ env_params = {
 config_params = default_params()
 config_params["intrinsic_reward"] = False
 config_params["uncertainty_scale"] = 400
-config_params["k"] = 0
-config_params['max_steps'] = int(2E6)
+config_params["k"] = 5
+config_params['max_steps'] = int(2E5)
 config_params["grad_repeats"] = int(1)
 
 wandb.init(project="test-project", entity="idm-morl-bo", tags=["DQN", env.spec.id], config=config_params)

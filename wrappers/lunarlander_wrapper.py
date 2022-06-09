@@ -8,8 +8,8 @@ VIEWPORT_H = 400
 
 
 class LunarLanderVelocityDistanceWrapper(MOWrapper):
-    def __init__(self, env, scale=None):
-        super().__init__(env, scale)
+    def __init__(self, env):
+        super().__init__(env)
         self.numberPreferences = 2
         self.reward_names = ["-Distance to goal", "-Velocity"]
 

@@ -1,3 +1,4 @@
+import random
 from .mo_wrapper import MOWrapper
 
 
@@ -10,8 +11,8 @@ class CartPoleConstRewardWrapper(MOWrapper):
 
     """
 
-    def __init__(self, env, scale=None):
-        super().__init__(env, scale)
+    def __init__(self, env):
+        super().__init__(env)
         self.numberPreferences = 2
         self.reward_names = ["const (1)", "const (2)"]
 
@@ -19,7 +20,31 @@ class CartPoleConstRewardWrapper(MOWrapper):
         base_env = self.env.env
         state = base_env.state
         position, velocity, angle, angular_velocity = state
-        R = (0.1, 0.1)
+        R = abs(angle)
+        z = reward
+        return R, z
+        # Returns (tuple of multi-objective rewards), z reward
+
+
+class CartPoleNoisyRewardWrapper(MOWrapper):
+    """
+    Usage: env = CartPoleV1AngleRewardWrapper(gym.make("CartPole-v1"))
+
+    The reward is:
+     - the absolute value of the angle (measured from the top)
+
+    """
+
+    def __init__(self, env):
+        super().__init__(env)
+        self.numberPreferences = 2
+        self.reward_names = ["-Angle", "Noisy sensor"]
+
+    def reward(self, reward):
+        base_env = self.env.env
+        state = base_env.state
+        position, velocity, angle, angular_velocity = state
+        R = (-abs(angle), -random.random())
         z = reward
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
@@ -34,8 +59,8 @@ class CartPoleV1AngleRewardWrapper(MOWrapper):
 
     """
 
-    def __init__(self, env, scale=None):
-        super().__init__(env, scale)
+    def __init__(self, env):
+        super().__init__(env)
         self.numberPreferences = 1
         self.reward_names = ["Abs(angle)"]
 
@@ -59,8 +84,8 @@ class CartPoleV1AngleNegEnergyRewardWrapper(MOWrapper):
 
     """
 
-    def __init__(self, env, scale=None):
-        super().__init__(env, scale)
+    def __init__(self, env):
+        super().__init__(env)
         self.previous_state = None
         self.numberPreferences = 2
         self.reward_names = ["-Angle", "-Energy"]
@@ -95,8 +120,8 @@ class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
 
     """
 
-    def __init__(self, env, scale=None):
-        super().__init__(env, scale)
+    def __init__(self, env):
+        super().__init__(env)
         self.previous_state = None
         self.numberPreferences = 2
         self.reward_names = ["-Angle", "Energy"]
@@ -129,8 +154,8 @@ class SparseCartpole(MOWrapper):
 
     total_steps = 0
 
-    def __init__(self, env: MOWrapper, scale=None, steps_target=200):
-        super().__init__(env, scale)
+    def __init__(self, env: MOWrapper, steps_target=200):
+        super().__init__(env)
         self.steps_target = steps_target
         self.numberPreferences = self.env.numberPreferences
         self.reward_names = self.env.reward_names
@@ -139,7 +164,6 @@ class SparseCartpole(MOWrapper):
         observation, reward, done, info = self.env.step(action)
         self.total_steps += 1
         R, z = self.reward(reward)
-        R = [x * self.scale[i] for i, x in enumerate(R)]
         return observation, (R, z), done, info
 
     def reward(self, reward):
@@ -151,3 +175,5 @@ class SparseCartpole(MOWrapper):
 
     def reset(self, **kwargs):
         self.total_steps = 0
+        self.previous_state = None
+        return self.env.reset(**kwargs)

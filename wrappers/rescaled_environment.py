@@ -4,8 +4,8 @@ from wrappers.mo_wrapper import MOWrapper
 
 
 class RescaledEnv(MOWrapper):
-    def __init__(self, env, scale=None, max_episode_length=None):
-        super().__init__(env, scale)
+    def __init__(self, env, max_episode_length=None):
+        super().__init__(env)
         self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
         if max_episode_length is not None:
             self.env._max_episode_steps = max_episode_length
@@ -16,7 +16,6 @@ class RescaledEnv(MOWrapper):
     def step(self, action):
         ns, r, d, x = self.env.step(action)
         R, z = self.reward(r)
-        R = [x * self.scale[i] for i, x in enumerate(R)]
         return self.rescale(ns), (R, z), d, x
 
     def reset(self):
