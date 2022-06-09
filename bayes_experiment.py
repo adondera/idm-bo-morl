@@ -1,3 +1,4 @@
+from unicodedata import numeric
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
@@ -9,50 +10,32 @@ from RND import RNDUncertainty
 from n_sphere import n_sphere
 import torch
 from math import pi
+import scipy.stats
 
-
-def reduce_dim(x: np.array or torch.tensor):
-    """
-    Project preference x to (n-1)-dimensional space
-    """
-    if type(x) == torch.Tensor:
-        x = x.numpy()
-    spherical_proj = n_sphere.convert_spherical(x)
-    return spherical_proj[1:]
-
-
-def increase_dim(x: dict or np.array):
-    """
-    Recover n-dimensional preference from (n-1)-dimensional preference
-    """
-    angles = x
-    if type(x) == dict:
-        angles = np.array(list(x.values()))
-    # 1.0 is the norm/radius, x.values() are the angles
-    l = torch.tensor(np.concatenate(([1.0], angles)), dtype=torch.float32)
-    rectangular_proj = n_sphere.convert_rectangular(l)
-    return torch.nn.functional.normalize(rectangular_proj, p=1.0, dim=0).numpy()
+from spherical_coords import reduce_dim, increase_dim
 
 
 class BayesExperiment:
     def __init__(
-            self,
-            optimizer,
-            utility,
-            model,
-            buffer,
-            config_params,
-            device,
-            env,
-            env_params,
-            pbounds=(-pi, pi),
-            metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10):]),
+        self,
+        optimizer,
+        utility,
+        model,
+        buffer,
+        config_params,
+        device,
+        env,
+        env_params,
+        pbounds=(-pi, pi),
+        dirichlet_alpha : np.array = None,
+        metric_fun=lambda x: np.average(x[int(len(x) * 9 / 10) :]),
     ):
         self.optimizer = optimizer
         self.utility = utility
         self.model = model
         self.buffer = buffer
         self.config_params = config_params
+        self.config_params_original = config_params.copy()
         self.device = device
         self.env = env
         self.env_params = env_params
@@ -60,8 +43,18 @@ class BayesExperiment:
         self.uncertainty_scale = config_params.get("uncertainty_scale", 0)
         self.pbounds = pbounds
         self.metric_fun = metric_fun
+        self.discarded_rewards = ([],[])
 
-        self.alpha = 0.1
+
+        self.numberPreferences = int(env_params["preferences"][0][0])
+
+        if not isinstance(dirichlet_alpha, np.ndarray) or len(dirichlet_alpha) != self.numberPreferences:
+            self.dirichlet_alpha = np.repeat(2.0, self.numberPreferences)
+        else:
+            self.dirichlet_alpha = dirichlet_alpha
+
+        # TODO make into param
+        self.prior = scipy.stats.dirichlet(alpha=self.dirichlet_alpha)
 
         wandb.init(project="test-project", entity="idm-morl-bo", tags=["Bayes", env.spec.id], config=self.config_params)
 
@@ -75,6 +68,7 @@ class BayesExperiment:
         if f:
             plt.plot(x, f(x))
         self.ax.plot(x, mean)
+        # acq_max = self.optimizer
         self.ax.fill_between(x, mean + sigma, mean - sigma, alpha=0.1)
         self.ax.scatter(
             self.optimizer.space.params.flatten(),
@@ -83,16 +77,26 @@ class BayesExperiment:
             s=50,
             zorder=10,
         )
+        self.ax.scatter(self.discarded_rewards[0], self.discarded_rewards[1], c="red", marker='X')
         plt.draw()
 
-    def run(self, number_of_experiments):
+    def run(self, number_of_experiments = None):
         preference_table = wandb.Table(columns=[i for i in range(self.env.numberPreferences)])
-        for experiment_number in range(number_of_experiments):
+        if number_of_experiments is None:
+            number_of_experiments = self.config_params.get("number_BO_experiments", 20)
 
-            # for the first burnout_experiments
-            # next_preference_proj = sample from the prior
-            # do not .register()
-            burnin_sample = False
+        discarded_experiments = self.config_params.get("discarded_experiments", int(number_of_experiments/10))
+        discarded_experiments_length_factor = self.config_params.get("discarded_experiments_length_factor", 1.0)
+        prior_only_experiments = self.config_params.get("prior_only_experiments", int(number_of_experiments/5))
+        print(f"Running {discarded_experiments}")
+        for experiment_id in range(number_of_experiments):
+
+            prior_only_sample = experiment_id < prior_only_experiments
+            discard_sample =  experiment_id < discarded_experiments
+            length_factor = discarded_experiments_length_factor if discard_sample else 1.0
+
+            self.config_params["max_episodes"] = int(self.config_params_original["max_episodes"] * length_factor)
+            self.config_params["max_steps"] = int(self.config_params_original["max_steps"] * length_factor)
 
             learner = DQN(self.model, self.config_params, self.device, self.env)
             rnd = RNDUncertainty(
@@ -100,12 +104,15 @@ class BayesExperiment:
                 input_dim=self.env_params["states"][0][0],
                 device=self.device,
             )
-            next_preference_proj = self.optimizer.suggest(self.utility)
 
-            print(next_preference_proj)
-            self.plot_bo()
+            if prior_only_sample:
+                next_preference = self.prior.rvs(size=1).squeeze()
+                next_preference_proj = reduce_dim(next_preference)
+            else:
+                next_preference_proj = self.optimizer.suggest(self.utility)
+
             next_preference = increase_dim(next_preference_proj)
-            print("Next preference to probe is:", next_preference)
+            print("Next preference to probe is:", next_preference, " spherical: ", next_preference_proj)
             experiment = Experiment(
                 learner=learner,
                 buffer=self.buffer,
@@ -118,17 +125,21 @@ class BayesExperiment:
             )
             experiment.run()
             wandb.log({
-                f"Experiment {experiment_number} plot": experiment.fig,
+                f"Experiment {experiment_id} plot": experiment.fig,
             })
             global_rewards_experiment = experiment.global_rewards
 
             metric = self.metric_fun(global_rewards_experiment)
-            self.global_rewards.append(metric)
-            self.optimizer.register(params=next_preference_proj, target=metric)
+            if not discard_sample:
+                self.global_rewards.append(metric)
+                self.optimizer.register(params=next_preference_proj, target=metric)
+            else:
+                self.discarded_rewards[0].append(next_preference_proj)
+                self.discarded_rewards[1].append(metric)
+                print("Discarding sample: ", next_preference_proj, metric)
+
             self.optimizer.suggest(self.utility)
             self.plot_bo()
-            if not burnin_sample:
-                self.optimizer.register(params=next_preference_proj, target=metric)
             preference_table.add_data(*next_preference.tolist())
             wandb.log({
                 "Target": metric
@@ -137,6 +148,11 @@ class BayesExperiment:
             wandb.log({
                 "BO plot": wandb.Image(self.fig)
             })
+        measured_max = self.optimizer.max
+        measured_max = measured_max["target"], measured_max["params"], increase_dim(measured_max["params"])
+        # TODO print max of the GP mean
+        #gp_max = self.optimizer.space.target.argmax()
+        print(f"The maximum is: {measured_max[0]}, preference={measured_max[2]} (spherical: {list(measured_max[1].values())})")
         wandb.log({
             "Preferences": preference_table
         })

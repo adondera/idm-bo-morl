@@ -13,6 +13,7 @@ from bayes_experiment import BayesExperiment
 from BayesianOptimization.bayes_opt import BayesianOptimization, UtilityFunction
 
 from math import pi
+import numpy as np
 import os
 
  
@@ -64,9 +65,21 @@ config_params["uncertainty_scale"] = 0
 
 # These parameters refer to the DDQN agent. Again, dependent on the environment.
 config_params["k"] = 5
-config_params["max_episodes"] = int(5e2)
 config_params["grad_repeats"] = int(1)
-config_params["max_steps"] = 1e5
+config_params["max_episodes"] = int(1e2) /50
+config_params["max_steps"] = 2e4 /50
+
+#TODO add to default_params()
+config_params["number_BO_episodes"] = 20
+
+"""
+    `discarded_experiments_length_factor` = n will make the initial experiments n times longer
+"""
+config_params["discarded_experiments_length_factor"] = 5.0
+
+number_BO_episodes = config_params["number_BO_episodes"]
+config_params["discarded_experiments"] = 4 #max(2,number_BO_episodes/10)
+config_params["prior_only_experiments"] = 8 #max(4, number_BO_episodes/5)
 
 # These parameters affect the bayesian optimization process
 alpha = 0.1
@@ -78,11 +91,12 @@ nu = 2.5
 # to try and optimize with negative weights, change to
 #  default_bounds = (-pi, pi)
 default_bounds = (0, pi / 2)
+dirichlet_alpha = np.array([5.0])
 
 optimizer = BayesianOptimization(
     f=None,
     kernel=Matern(length_scale_bounds="fixed", length_scale=length_scale, nu=nu),
-    pbounds={"x": default_bounds},
+    pbounds=([default_bounds]*int(env_params["preferences"][0][0]-1)),
     verbose=2,
     random_state=1,
 )
@@ -92,8 +106,6 @@ optimizer.set_gp_params(alpha=alpha)
 buffer = ReplayBuffer(
     env_params, buffer_size=int(1e5), device=device, k=config_params.get("k", 1)
 )
-
-number_of_bayes_episodes = 10
 
 bayes_experiment = BayesExperiment(
     optimizer=optimizer,
@@ -105,6 +117,7 @@ bayes_experiment = BayesExperiment(
     env=env,
     env_params=env_params,
     pbounds=default_bounds,
+    dirichlet_alpha=dirichlet_alpha
 )
 
-bayes_experiment.run(number_of_bayes_episodes)
+bayes_experiment.run(number_BO_episodes)
