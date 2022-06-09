@@ -167,7 +167,7 @@ class Experiment:
         self.ax1.clear()
         self.ax1.plot(
             np.linspace(1, current_steps, num=len(self.losses)),
-            uniform_filter1d(self.losses, size=100),
+            uniform_filter1d(self.losses, size=100, output=float),
             color="blue",
             label="Average loss",
         )
@@ -176,7 +176,7 @@ class Experiment:
         self.ax2.clear()
         self.ax2.plot(
             np.linspace(1, current_steps, num=len(self.global_rewards)),
-            uniform_filter1d(self.global_rewards, size=100),
+            uniform_filter1d(self.global_rewards, size=100, output=float),
             color="black",
             label="Cumulative global reward",
         )
@@ -185,7 +185,7 @@ class Experiment:
         self.ax3.clear()
         self.ax3.plot(
             np.linspace(1, current_steps, num=len(self.episode_lengths)),
-            uniform_filter1d(self.episode_lengths, size=100),
+            uniform_filter1d(self.episode_lengths, size=100, output=float),
             color="yellow",
             label="Episode length",
         )
@@ -195,12 +195,12 @@ class Experiment:
         for idx, mo_rewards in enumerate(self.mo_rewards):
             self.ax4.plot(
                 np.linspace(1, current_steps, num=len(mo_rewards)),
-                uniform_filter1d(mo_rewards, size=100),
+                uniform_filter1d(mo_rewards, size=100, output=float),
                 label=self.env.reward_names[idx],
             )
         self.ax4.plot(
             np.linspace(1, current_steps, num=len(self.scalarized_reward)),
-            uniform_filter1d(self.scalarized_reward, size=100),
+            uniform_filter1d(self.scalarized_reward, size=100, output=float),
             label="scalarized-reward"
         )
         self.ax4.legend()

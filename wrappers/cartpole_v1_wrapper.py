@@ -169,8 +169,6 @@ class SparseCartpole(MOWrapper):
     def reward(self, reward):
         R, _ = self.env.reward(reward)
         z = 0 if self.total_steps < self.steps_target else 1
-        if z == 1:
-            print(z)
         return R, z
 
     def reset(self, **kwargs):

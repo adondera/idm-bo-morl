@@ -13,10 +13,10 @@ from config import default_params
 from dqn import DQN
 from RND import RNDUncertainty
 
-if os.environ.get("DESKTOP_SESSION") == "i3":
-    matplotlib.use("tkagg")
-else:
-    matplotlib.use("Qt5agg")
+# if os.environ.get("DESKTOP_SESSION") == "i3":
+#     matplotlib.use("tkagg")
+# else:
+matplotlib.use("Qt5agg")
 
 env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
 
@@ -36,11 +36,13 @@ config_params["intrinsic_reward"] = False
 config_params["uncertainty_scale"] = 400
 config_params["k"] = 5
 config_params['max_steps'] = int(2E5)
+config_params['max_episodes'] = int(1e4)
 config_params["grad_repeats"] = int(1)
+config_params['render_step'] = 0
 
 wandb.init(project="test-project", entity="idm-morl-bo", tags=["DQN", env.spec.id], config=config_params)
 
-preference = np.array([0., 1.], dtype=np.single)
+preference = np.array([1., 0.], dtype=np.single)
 
 wandb.log({
     "Preference": preference
