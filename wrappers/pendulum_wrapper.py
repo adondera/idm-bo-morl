@@ -1,4 +1,3 @@
-from asyncore import readwrite
 import gym
 from gym.envs.classic_control.pendulum import angle_normalize
 
@@ -9,10 +8,10 @@ class PendulumRewardWrapper(gym.Wrapper):
         self.numberPreferences = 4
         self.reward_names = ["angle", "angular_velocity", "torque", "energy"]
 
-
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
-        return observation, self.reward(reward, action), done, info
+        (R, z) = self.reward(reward, action)
+        return observation, (R, z), done, info
 
     def reward(self, reward, action):
         base_env = self.env.env
@@ -69,10 +68,8 @@ class PendulumMultiObjectiveOriginalRewardWrapper(PendulumRewardWrapper):
         self.numberPreferences = 3
         self.reward_names = ["angle", "angular_velocity"]
 
-
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
         R_0, z = self.reward(reward, action)
         R = (R_0["angle"], R_0["angular_velocity"], R_0["torque"])
         return observation, (R, z), done, info
-

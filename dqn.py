@@ -24,6 +24,8 @@ class DQN:
         self.anneal_time = int(params.get('epsilon_anneal_time', 10000))
         self.num_decisions = 0
 
+        self.norm = params.get('norm', 1)
+
         self.env = env
 
     def _process_input(self, states, preferences):
@@ -84,11 +86,11 @@ class DQN:
             return qvalues
 
     def train(self, batch):
-        """ Performs one gradient decent step of DQN. """
+        """ Performs one gradient descent step of DQN. """
         self.model.train(True)
         # Compute TD-loss. We multiply with the preferences here to obtain a single reward.
-        targets = torch.sum(batch['rewards'] * batch['preferences'], dim=-1).unsqueeze(-1) + self.gamma * (
-                ~batch['dones'] * self._next_state_values(batch))
+        targets = torch.sum(torch.pow(batch['rewards'], self.norm) * batch['preferences'], dim=-1).unsqueeze(
+            -1) + self.gamma * (~batch['dones'] * self._next_state_values(batch))
         loss = self.criterion(self._current_values(batch), targets.detach())
         # Backpropagate loss
         self.optimizer.zero_grad()

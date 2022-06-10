@@ -1,8 +1,9 @@
-import gym
 import numpy as np
 
+from wrappers.mo_wrapper import MOWrapper
 
-class RescaledEnv(gym.Wrapper):
+
+class RescaledEnv(MOWrapper):
     def __init__(self, env, max_episode_length=None):
         super().__init__(env)
         self.bounds = [(l, h) for l, h in zip(env.observation_space.low, env.observation_space.high)]
@@ -14,10 +15,8 @@ class RescaledEnv(gym.Wrapper):
 
     def step(self, action):
         ns, r, d, x = self.env.step(action)
-        return self.rescale(ns), self.reward(r), d, x
-
-    def reward(self, reward):
-        return reward
+        R, z = self.reward(r)
+        return self.rescale(ns), (R, z), d, x
 
     def reset(self):
         return self.rescale(self.env.reset())

@@ -4,10 +4,10 @@ import torch as th
 class RNDUncertainty:
     """ This class uses Random Network Distillation to estimate the uncertainty/novelty of states. """
 
-    def __init__(self, scale, input_dim, device, hidden_dim=1024, embed_dim=256, **kwargs):
+    def __init__(self, scale, state_dim, device, preference_dim=0, hidden_dim=1024, embed_dim=256, **kwargs):
         self.scale = scale
         self.criterion = th.nn.MSELoss(reduction='none')
-        # YOUR CODE HERE
+        input_dim = state_dim + (preference_dim if preference_dim > 0 else 0)
         self.target_net = th.nn.Sequential(th.nn.Linear(input_dim, hidden_dim), th.nn.ReLU(),
                                            th.nn.Linear(hidden_dim, hidden_dim), th.nn.ReLU(),
                                            th.nn.Linear(hidden_dim, embed_dim))
@@ -17,6 +17,7 @@ class RNDUncertainty:
         self.target_net.to(device)
         self.predict_net.to(device)
         self.optimizer = th.optim.Adam(self.predict_net.parameters())
+        self.use_preference = preference_dim > 0
 
     def error(self, state, preference):
         """ Computes the error between the prediction and target network. """
@@ -24,8 +25,12 @@ class RNDUncertainty:
             state = th.tensor(state)
         if len(state.shape) == 1:
             state.unsqueeze(dim=0)
-        # processed_input = th.cat((state, preference), dim=-1)
-        processed_input = state
+        if self.use_preference:
+            if not isinstance(preference, th.Tensor):
+                preference = th.tensor(preference)
+            processed_input = th.cat((state, preference), dim=-1)
+        else:
+            processed_input = state
         # YOUR CODE HERE: return the RND error
         return self.criterion(self.predict_net(processed_input), self.target_net(processed_input))
 

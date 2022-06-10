@@ -1,4 +1,4 @@
-import gym
+from wrappers.mo_wrapper import MOWrapper
 
 FPS = 50
 SCALE = 30.0
@@ -7,7 +7,12 @@ VIEWPORT_W = 600
 VIEWPORT_H = 400
 
 
-class LunarLanderVelocityDistanceWrapper(gym.RewardWrapper):
+class LunarLanderVelocityDistanceWrapper(MOWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.numberPreferences = 2
+        self.reward_names = ["-Distance to goal", "-Velocity"]
+
     def reward(self, reward):
         """
         :param reward: The reward sampled from the environment
@@ -27,10 +32,4 @@ class LunarLanderVelocityDistanceWrapper(gym.RewardWrapper):
             1.0 if self.legs[1].ground_contact else 0.0,
         ]
         # TODO: Figure out the distance to the helipad
-        return (-state[2], -state[3], ), reward
-
-
-# env = LunarLanderVelocityDistanceWrapper(gym.make("LunarLander-v2"))
-# env.reset()
-# x = env.step(0)
-# print(x)
+        return (-state[2], -state[3],), reward

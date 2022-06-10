@@ -114,7 +114,7 @@ class Experiment_SO:
         self.ax1.clear()
         self.ax1.plot(
             np.linspace(1, current_steps, num=len(self.losses)),
-            uniform_filter1d(self.losses, size=100),
+            uniform_filter1d(self.losses, size=100, output=float),
             color='blue',
             label='Average loss')
         self.ax1.legend()
@@ -122,7 +122,7 @@ class Experiment_SO:
         self.ax2.clear()
         self.ax2.plot(
             np.linspace(1, current_steps, num=len(self.global_rewards)),
-            uniform_filter1d(self.global_rewards, size=100),
+            uniform_filter1d(self.global_rewards, size=100, output=float),
             color='black',
             label='Cumulative global reward')
         self.ax2.legend()
@@ -130,7 +130,7 @@ class Experiment_SO:
         self.ax3.clear()
         self.ax3.plot(
             np.linspace(1, current_steps, num=len(self.episode_lengths)),
-            uniform_filter1d(self.episode_lengths, size=100),
+            uniform_filter1d(self.episode_lengths, size=100, output=float),
             color='yellow',
             label='Episode length')
         self.ax3.legend()
