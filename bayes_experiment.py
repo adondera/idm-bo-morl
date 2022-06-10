@@ -123,9 +123,6 @@ class BayesExperiment:
                 uncertainty=rnd,
             )
             experiment.run()
-            wandb.log({
-                f"Experiment {experiment_id} plot": experiment.fig,
-            })
             global_rewards_experiment = experiment.global_rewards
 
             metric = self.metric_fun(global_rewards_experiment)
@@ -141,12 +138,11 @@ class BayesExperiment:
             self.plot_bo()
             preference_table.add_data(*next_preference.tolist())
             wandb.log({
-                "Target": metric
-            })
-            # self.optimizer.suggest(self.utility)
-            wandb.log({
+                "Target": metric,
+                f"Experiment {experiment_id} plot": experiment.fig,
                 "BO plot": wandb.Image(self.fig)
             })
+            # self.optimizer.suggest(self.utility)
         measured_max = self.optimizer.max
         measured_max = measured_max["target"], measured_max["params"], increase_dim(measured_max["params"])
         # TODO print max of the GP mean
@@ -156,4 +152,5 @@ class BayesExperiment:
         wandb.log({
             "Preferences": preference_table
         })
-        plt.show(block=True)
+
+        wandb.run.summary["Global reward metric"] = measured_max[0]
