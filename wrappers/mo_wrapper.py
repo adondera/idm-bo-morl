@@ -27,8 +27,7 @@ class RescaledReward(MOWrapper):
             self.scale = [1] * self.env.numberPreferences
 
     def step(self, action):
-        observation, reward, done, info = self.env.step(action)
-        R, z = self.reward(reward)
+        observation, (R, z), done, info = self.env.step(action)
         R = [x * self.scale[i] for i, x in enumerate(R)]
         return observation, (R, z), done, info
 
