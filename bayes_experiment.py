@@ -96,7 +96,7 @@ class BayesExperiment:
             self.config_params["max_episodes"] = int(self.config_params_original["max_episodes"] * length_factor)
             self.config_params["max_steps"] = int(self.config_params_original["max_steps"] * length_factor)
 
-            learner = DQN(self.model, self.config_params, self.device, self.env)
+            learner = DQN(self.model, self.config_params, self.device, self.env, self.config_params["linear_scalarization"])
             rnd = RNDUncertainty(
                 self.uncertainty_scale,
                 state_dim=self.env_params["states"][0][0],

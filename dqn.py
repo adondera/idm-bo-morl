@@ -6,7 +6,7 @@ from copy import deepcopy
 
 
 class DQN:
-    def __init__(self, model, params, device, env):
+    def __init__(self, model, params, device, env, linear=True):
         self.device = device
         self.model = model.to(self.device)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=params.get('lr', 5E-4))
@@ -27,6 +27,7 @@ class DQN:
         self.norm = params.get('norm', 1)
 
         self.env = env
+        self.linear = linear
 
     def _process_input(self, states, preferences):
         processed_input = torch.cat((states, preferences), dim=-1)
@@ -84,13 +85,17 @@ class DQN:
                 actions = next_values.max(dim=-1)[1].unsqueeze(dim=-1)
                 qvalues = qvalues.gather(dim=-1, index=actions)
             return qvalues
-
+        
     def train(self, batch):
         """ Performs one gradient descent step of DQN. """
         self.model.train(True)
         # Compute TD-loss. We multiply with the preferences here to obtain a single reward.
-        targets = torch.sum(torch.pow(batch['rewards'], self.norm) * batch['preferences'], dim=-1).unsqueeze(
-            -1) + self.gamma * (~batch['dones'] * self._next_state_values(batch))
+        if self.linear:
+            targets = torch.sum(torch.pow(batch['rewards'], self.norm) * batch['preferences'], dim=-1).unsqueeze(
+                -1) + self.gamma * (~batch['dones'] * self._next_state_values(batch))
+        else:
+            targets = self.chebyshev(torch.pow(batch['rewards'], self.norm), batch['preferences']).unsqueeze(-1) 
+            + self.gamma * (~batch['dones'] * self._next_state_values(batch))
         loss = self.criterion(self._current_values(batch), targets.detach())
         # Backpropagate loss
         self.optimizer.zero_grad()
@@ -100,3 +105,7 @@ class DQN:
         # Update target network (if specified) and return loss
         self.target_model_update()
         return loss.item()
+
+    #chebyshev scalarization function
+    def chebyshev(self, mo_rewards, preferences):
+        return torch.min(mo_rewards * preferences, dim=1)[0]

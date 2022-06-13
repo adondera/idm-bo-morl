@@ -56,5 +56,6 @@ def default_params():
         "length_scale": 0.1,
         "xi": 0.1,
         "kappa": 2.5,
-        "nu": 2.5
+        "nu": 2.5,
+        "linear_scalarization": False # True => linear scalarization, False => chebyshev scalarization
     }
