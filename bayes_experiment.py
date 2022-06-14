@@ -55,8 +55,10 @@ class BayesExperiment:
         # TODO make into param
         self.prior = scipy.stats.dirichlet(alpha=self.dirichlet_alpha)
 
-        wandb.init(project="test-project", entity="idm-morl-bo", tags=["Bayes", env.spec.id], config=self.config_params)
-
+        wandb.init(project="test-project", entity="idm-morl-bo",
+                   tags=["Bayes"] + self.env.tags,
+                   config=self.config_params)
+        wandb.run.log_code()
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
     def plot_bo(self, f=None):
@@ -123,9 +125,7 @@ class BayesExperiment:
                 uncertainty=rnd,
             )
             experiment.run()
-            global_rewards_experiment = experiment.global_rewards
-
-            metric = self.metric_fun(global_rewards_experiment)
+            metric = self.evaluate(learner, preference=next_preference)
             if not discard_sample:
                 self.global_rewards.append(metric)
                 self.optimizer.register(params=next_preference_proj, target=metric)
@@ -154,3 +154,24 @@ class BayesExperiment:
         })
 
         wandb.run.summary["Global reward metric"] = measured_max[0]
+
+    # Run an episode by evaluating the greedy policy learned by the agent
+    # The policy is deterministic, hence only 1 episode is required to evaluate it
+    def evaluate(self, learner, preference):
+        config = self.config_params.copy()
+        config["epsilon_start"] = 0
+        config["epsilon_finish"] = 0
+        new_learner = DQN(learner.model, config, self.device, self.env)
+        experiment = Experiment(
+            learner=new_learner,
+            buffer=None,
+            env=self.env,
+            reward_dim=self.env_params["rewards"][0][0],
+            preference=preference,
+            params=self.config_params,
+            device=self.device,
+            uncertainty=None,
+        )
+        plt.close(experiment.fig)
+        results = experiment._run_episode()
+        return results["global_reward"]

@@ -15,6 +15,7 @@ class CartPoleConstRewardWrapper(MOWrapper):
         super().__init__(env)
         self.numberPreferences = 2
         self.reward_names = ["const (1)", "const (2)"]
+        self.tags = ["CartPole", "Constant 1 / Constant 2"]
 
     def reward(self, reward):
         base_env = self.env.env
@@ -39,12 +40,13 @@ class CartPoleNoisyRewardWrapper(MOWrapper):
         super().__init__(env)
         self.numberPreferences = 2
         self.reward_names = ["-Angle", "Noisy sensor"]
+        self.tags = ["CartPole", "Negative Angle / Noisy Random"]
 
     def reward(self, reward):
         base_env = self.env.env
         state = base_env.state
         position, velocity, angle, angular_velocity = state
-        R = (-abs(angle), -random.random()/2)
+        R = (-abs(angle), -random.random() / 2)
         z = reward
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
@@ -89,6 +91,7 @@ class CartPoleV1AngleNegEnergyRewardWrapper(MOWrapper):
         self.previous_state = None
         self.numberPreferences = 2
         self.reward_names = ["-Angle", "-Energy"]
+        self.tags = ["CartPole", "Negative Angle / Negative Velocity"]
 
     def reward(self, reward):
         base_env = self.env.env
@@ -98,7 +101,7 @@ class CartPoleV1AngleNegEnergyRewardWrapper(MOWrapper):
         position_0, velocity_0, angle_0, angular_velocity_0 = previous_state
         delta_velocity = velocity - velocity_0
         energy = pow(delta_velocity, 2)
-        R = (-abs(angle), -energy)
+        R = (-abs(angle), -abs(velocity))
 
         z = reward
         self.previous_state = state
@@ -125,6 +128,7 @@ class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
         self.previous_state = None
         self.numberPreferences = 2
         self.reward_names = ["-Angle", "Energy"]
+        self.tags = ["CartPole", "Negative Angle / Positive Velocity"]
 
     def reward(self, reward):
         base_env = self.env.env
@@ -134,7 +138,7 @@ class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
         position_0, velocity_0, angle_0, angular_velocity_0 = previous_state
         delta_velocity = velocity - velocity_0
         energy = pow(delta_velocity, 2)
-        R = (-abs(angle), energy)
+        R = (-abs(angle), abs(velocity))
 
         z = reward
         self.previous_state = state
@@ -159,6 +163,7 @@ class SparseCartpole(MOWrapper):
         self.steps_target = steps_target
         self.numberPreferences = self.env.numberPreferences
         self.reward_names = self.env.reward_names
+        self.tags = self.env.tags + ["Sparse"]
 
     def step(self, action):
         observation, reward, done, info = self.env.step(action)
