@@ -157,21 +157,24 @@ class BayesExperiment:
 
     # Run an episode by evaluating the greedy policy learned by the agent
     # The policy is deterministic, hence only 1 episode is required to evaluate it
-    def evaluate(self, learner, preference):
+    def evaluate(self, learner, preference, num_episodes=10):
         config = self.config_params.copy()
         config["epsilon_start"] = 0
         config["epsilon_finish"] = 0
-        new_learner = DQN(learner.model, config, self.device, self.env)
-        experiment = Experiment(
-            learner=new_learner,
-            buffer=None,
-            env=self.env,
-            reward_dim=self.env_params["rewards"][0][0],
-            preference=preference,
-            params=self.config_params,
-            device=self.device,
-            uncertainty=None,
-        )
-        plt.close(experiment.fig)
-        results = experiment._run_episode()
-        return results["global_reward"]
+        global_rewards = []
+        for _ in range(num_episodes):
+            new_learner = DQN(learner.model, config, self.device, self.env)
+            experiment = Experiment(
+                learner=new_learner,
+                buffer=None,
+                env=self.env,
+                reward_dim=self.env_params["rewards"][0][0],
+                preference=preference,
+                params=self.config_params,
+                device=self.device,
+                uncertainty=None,
+            )
+            plt.close(experiment.fig)
+            results = experiment._run_episode()
+            global_rewards.append(results["global_reward"])
+        return np.average(global_rewards)
