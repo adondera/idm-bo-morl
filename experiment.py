@@ -160,6 +160,19 @@ class Experiment:
                 break
         plt.close(self.fig)
 
+    def evaluate(self, num_episodes = 10, preference = None):
+        env_steps = 0
+        # for e in tqdm.tqdm():
+        if preference is not None:
+            self.preference = preference
+        global_rewards = []
+        with torch.no_grad():
+            for _ in range(num_episodes):
+                episode = self._run_episode(render=False)
+                env_steps += episode["env_steps"]
+                global_rewards.append(episode["global_reward"])
+        return np.average(global_rewards)
+
     def plot(self, current_steps=None):
         current_steps = (
             current_steps if current_steps is not None else len(self.episode_lengths)

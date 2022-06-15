@@ -14,6 +14,9 @@ import scipy.stats
 
 from spherical_coords import reduce_dim, increase_dim
 
+import sklearn.gaussian_process
+from scipy.optimize import minimize
+
 
 class BayesExperiment:
     def __init__(
@@ -125,7 +128,7 @@ class BayesExperiment:
                 uncertainty=rnd,
             )
             experiment.run()
-            metric = self.evaluate(learner.model, preference=next_preference)
+            metric = experiment.evaluate(num_episodes=10)
             if not discard_sample:
                 self.global_rewards.append(metric)
                 self.optimizer.register(params=next_preference_proj, target=metric)
@@ -154,27 +157,63 @@ class BayesExperiment:
         })
 
         wandb.run.summary["Global reward metric"] = measured_max[0]
+    
+    def evaluate_best_preference(self, num_samples=10, num_episodes=None):
+        """
+        Now it evaluates one preferences, but it should evaluate num_samples preferences
+        """
+        new_learner = DQN(self.model, self.config_params, self.device, self.env)
 
-    # Run an episode by evaluating the greedy policy learned by the agent
-    # The policy is deterministic, hence only 1 episode is required to evaluate it
-    def evaluate(self, model, preference, num_episodes=10):
-        config = self.config_params.copy()
-        config["epsilon_start"] = 0
-        config["epsilon_finish"] = 0
-        global_rewards = []
-        new_learner = DQN(model, config, self.device, self.env)
+        # get new preference
+        GP : sklearn.gaussian_process.GaussianProcessRegressor = self.optimizer._gp
+        bounds = self.optimizer._space.bounds
+        # random_state = self.optimizer._random_state
+        # n_warmup = 10000
+        # x_tries = random_state.uniform(bounds[:, 0], bounds[:, 1],
+        #                            size=(n_warmup, bounds.shape[0]))
+        
+        n_points = 10000
+        X = np.linspace(bounds[:,0], bounds[:,1], n_points)
+        y = GP.sample_y(X = X, n_samples=1)
+        max_id = y.argmax()
+        max_y = y[max_id]
+        max_x = X[max_id]
+
+        best_preference_proj = max_x
+        best_preference = increase_dim(best_preference_proj)
         experiment = Experiment(
             learner=new_learner,
             buffer=None,
             env=self.env,
             reward_dim=self.env_params["rewards"][0][0],
-            preference=preference,
+            preference=best_preference,
             params=self.config_params,
             device=self.device,
             uncertainty=None,
         )
-        for _ in range(num_episodes):
-            plt.close(experiment.fig)
-            results = experiment._run_episode()
-            global_rewards.append(results["global_reward"])
-        return np.average(global_rewards)
+        return experiment.evaluate(num_episodes=num_episodes)
+
+
+    # Run an episode by evaluating the greedy policy learned by the agent
+    # The policy is deterministic, hence only 1 episode is required to evaluate it
+    # def evaluate(self, model, preference, num_episodes=10):
+    #     config = self.config_params.copy()
+    #     config["epsilon_start"] = 0
+    #     config["epsilon_finish"] = 0
+    #     global_rewards = []
+    #     new_learner = DQN(model, config, self.device, self.env)
+    #     experiment = Experiment(
+    #         learner=new_learner,
+    #         buffer=None,
+    #         env=self.env,
+    #         reward_dim=self.env_params["rewards"][0][0],
+    #         preference=preference,
+    #         params=self.config_params,
+    #         device=self.device,
+    #         uncertainty=None,
+    #     )
+    #     for _ in range(num_episodes):
+    #         plt.close(experiment.fig)
+    #         results = experiment._run_episode()
+    #         global_rewards.append(results["global_reward"])
+    #     return np.average(global_rewards)

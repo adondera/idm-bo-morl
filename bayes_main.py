@@ -64,8 +64,8 @@ config_params["preference_dim"] = env_params["preferences"][0][0]
 # These parameters refer to the DDQN agent. Again, dependent on the environment.
 config_params["k"] = 10
 config_params["grad_repeats"] = int(1)
-config_params['max_steps'] = int(2E5)
-config_params['max_episodes'] = int(1e3)
+config_params['max_steps'] = int(2E5) / 100
+config_params['max_episodes'] = int(1e3) / 100
 
 # TODO add to default_params()
 config_params["number_BO_episodes"] = 5
@@ -73,7 +73,7 @@ config_params["number_BO_episodes"] = 5
 """
     `discarded_experiments_length_factor` = n will make the initial experiments n times longer
 """
-config_params["discarded_experiments_length_factor"] = 1
+config_params["discarded_experiments_length_factor"] = 1.0
 
 number_BO_episodes = config_params["number_BO_episodes"]
 config_params["discarded_experiments"] = 0  # max(2,number_BO_episodes/10)
@@ -119,3 +119,5 @@ bayes_experiment = BayesExperiment(
 )
 
 bayes_experiment.run(number_BO_episodes)
+
+bayes_experiment.evaluate_best_preference()
