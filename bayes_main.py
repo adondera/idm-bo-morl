@@ -7,6 +7,7 @@ from wrappers.cartpole_v1_wrapper import (
     SparseCartpole,
     CartPoleNoisyRewardWrapper
 )
+from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarVelocityDistance
 from wrappers.mo_wrapper import RescaledReward
 from replay_buffer import ReplayBuffer
 from config import default_params
@@ -22,7 +23,8 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
+# env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
+env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -36,17 +38,13 @@ env_params = {
 }
 
 model = torch.nn.Sequential(
-    torch.nn.Linear(env_params["states"][0][0] + env_params["rewards"][0][0], 215),
+    torch.nn.Linear(env_params['states'][0][0] + env_params["rewards"][0][0], 128),
     torch.nn.ReLU(),
-    torch.nn.Linear(215, 512),
+    torch.nn.Linear(128, 512),
     torch.nn.ReLU(),
-    torch.nn.Linear(512, 1024),
+    torch.nn.Linear(512, 128),
     torch.nn.ReLU(),
-    torch.nn.Linear(1024, 512),
-    torch.nn.ReLU(),
-    torch.nn.Linear(512, 215),
-    torch.nn.ReLU(),
-    torch.nn.Linear(215, env.action_space.n),
+    torch.nn.Linear(128, env.action_space.n),
 )
 
 # These configuration parameters need to be changed depending on the environment

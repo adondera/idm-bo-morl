@@ -6,6 +6,7 @@ class DiscreteMountainCar3Distance(RescaledEnv):
         super().__init__(env, max_episode_length)
         self.numberPreferences = 3
         self.reward_names = ["-Distance to left hill", "-Distance to start", "-Distance to right hill"]
+        self.tags = ["Sparse", "MountainCar", "Distance left / Distance center / Distance right"]
 
     def reward(self, reward: float) -> tuple[tuple[float, float, float], float]:
         """
@@ -29,6 +30,7 @@ class DiscreteMountainCarVelocity(RescaledEnv):
         super().__init__(env, max_episode_length)
         self.numberPreferences = 1
         self.reward_names = ["Current velocity"]
+        self.tags = ["Sparse", "MountainCar", "Velocity"]
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         """
@@ -45,6 +47,7 @@ class DiscreteMountainCarVelocityDistance(RescaledEnv):
         super().__init__(env, max_episode_length)
         self.numberPreferences = 2
         self.reward_names = ["Velocity", "-Distance to goal"]
+        self.tags = ["Sparse", "MountainCar", "Velocity / Negative distance"]
 
     def reward(self, reward: float) -> tuple[tuple[float, float], float]:
         goal_position = self.env.unwrapped.goal_position
@@ -54,11 +57,3 @@ class DiscreteMountainCarVelocityDistance(RescaledEnv):
         distance_to_right_hill = abs(current_position - goal_position)
         distance_metric = min(distance_right_to_start, distance_to_right_hill)
         return (abs(current_velocity), -distance_metric), reward
-
-# Use this code to play the environment or for debugging purposes
-
-# env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
-# env.reset()
-# print(env.step(0))
-
-# play(env)
