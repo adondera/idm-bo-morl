@@ -44,7 +44,7 @@ class BayesExperiment:
         self.pbounds = pbounds
         self.metric_fun = metric_fun
         self.discarded_rewards = ([], [])
-
+        self.enable_wandb = False
         self.numberPreferences = int(env_params["preferences"][0][0])
 
         if not isinstance(dirichlet_alpha, np.ndarray) or len(dirichlet_alpha) != self.numberPreferences:
@@ -55,10 +55,11 @@ class BayesExperiment:
         # TODO make into param
         self.prior = scipy.stats.dirichlet(alpha=self.dirichlet_alpha)
 
-        wandb.init(project="test-project", entity="idm-morl-bo",
-                   tags=["Bayes"] + self.env.tags,
-                   config=self.config_params)
-        wandb.run.log_code()
+        if self.enable_wandb:
+            wandb.init(project="test-project", entity="idm-morl-bo",
+                    tags=["Bayes"] + self.env.tags,
+                    config=self.config_params)
+            wandb.run.log_code()
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
     def plot_bo(self, f=None):
@@ -81,7 +82,8 @@ class BayesExperiment:
         plt.draw()
 
     def run(self, number_of_experiments=None):
-        preference_table = wandb.Table(columns=[i for i in range(self.env.numberPreferences)])
+        if self.enable_wandb:
+            preference_table = wandb.Table(columns=[i for i in range(self.env.numberPreferences)])
         if number_of_experiments is None:
             number_of_experiments = self.config_params.get("number_BO_experiments", 20)
 
@@ -136,12 +138,13 @@ class BayesExperiment:
 
             self.optimizer.suggest(self.utility)
             self.plot_bo()
-            preference_table.add_data(*next_preference.tolist())
-            wandb.log({
-                "Target": metric,
-                f"Experiment {experiment_id} plot": experiment.fig,
-                "BO plot": wandb.Image(self.fig)
-            })
+            if self.enable_wandb:
+                preference_table.add_data(*next_preference.tolist())
+                wandb.log({
+                    "Target": metric,
+                    f"Experiment {experiment_id} plot": experiment.fig,
+                    "BO plot": wandb.Image(self.fig)
+                })
             # self.optimizer.suggest(self.utility)
         measured_max = self.optimizer.max
         measured_max = measured_max["target"], measured_max["params"], increase_dim(measured_max["params"])
@@ -149,11 +152,12 @@ class BayesExperiment:
         # gp_max = self.optimizer.space.target.argmax()
         print(
             f"The maximum is: {measured_max[0]}, preference={measured_max[2]} (spherical: {list(measured_max[1].values())})")
-        wandb.log({
-            "Preferences": preference_table
-        })
+        if self.enable_wandb:
+            wandb.log({
+                "Preferences": preference_table
+            })
 
-        wandb.run.summary["Global reward metric"] = measured_max[0]
+            wandb.run.summary["Global reward metric"] = measured_max[0]
     
     def evaluate_best_preference(self, num_samples=10, num_episodes=None):
         """
