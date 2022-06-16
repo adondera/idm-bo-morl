@@ -1,4 +1,3 @@
-from unicodedata import numeric
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
@@ -15,8 +14,6 @@ import scipy.stats
 from spherical_coords import reduce_dim, increase_dim
 
 import sklearn.gaussian_process
-from scipy.optimize import minimize
-
 
 class BayesExperiment:
     def __init__(
@@ -160,9 +157,13 @@ class BayesExperiment:
     
     def evaluate_best_preference(self, num_samples=10, num_episodes=None):
         """
-        Now it evaluates one preferences, but it should evaluate num_samples preferences
+        Returns list of (preference, global reward from the evaluation, global reward predicted by the GP)
         """
+
+        metrics = []
+
         new_learner = DQN(self.model, self.config_params, self.device, self.env)
+
 
         # get new preference
         GP : sklearn.gaussian_process.GaussianProcessRegressor = self.optimizer._gp
@@ -172,26 +173,33 @@ class BayesExperiment:
         # x_tries = random_state.uniform(bounds[:, 0], bounds[:, 1],
         #                            size=(n_warmup, bounds.shape[0]))
         
-        n_points = 10000
-        X = np.linspace(bounds[:,0], bounds[:,1], n_points)
-        y = GP.sample_y(X = X, n_samples=1)
-        max_id = y.argmax()
-        max_y = y[max_id]
-        max_x = X[max_id]
+        for _ in range(num_samples):
+            n_points = 10000
+            X = np.linspace(bounds[:,0], bounds[:,1], n_points)
+            y = GP.sample_y(X = X, n_samples=1)
+            max_id = y.argmax()
+            max_y = y[max_id]
+            max_x = X[max_id]
 
-        best_preference_proj = max_x
-        best_preference = increase_dim(best_preference_proj)
-        experiment = Experiment(
-            learner=new_learner,
-            buffer=None,
-            env=self.env,
-            reward_dim=self.env_params["rewards"][0][0],
-            preference=best_preference,
-            params=self.config_params,
-            device=self.device,
-            uncertainty=None,
-        )
-        return experiment.evaluate(num_episodes=num_episodes)
+            best_preference_proj = max_x
+            best_preference = increase_dim(best_preference_proj)
+
+            experiment = Experiment(
+                learner=new_learner,
+                buffer=None,
+                env=self.env,
+                reward_dim=self.env_params["rewards"][0][0],
+                preference=best_preference,
+                params=self.config_params,
+                device=self.device,
+                uncertainty=None,
+                showFigure=False
+            )
+            metric = experiment.evaluate(num_episodes=num_episodes)
+            metrics.append((best_preference, metric, max_y))
+
+        return metrics
+
 
 
     # Run an episode by evaluating the greedy policy learned by the agent

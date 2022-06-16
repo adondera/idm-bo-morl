@@ -22,7 +22,8 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
+env = RescaledReward(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1")))
+# env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -62,7 +63,7 @@ config_params["uncertainty_scale"] = 0
 config_params["preference_dim"] = env_params["preferences"][0][0]
 
 # These parameters refer to the DDQN agent. Again, dependent on the environment.
-config_params["k"] = 10
+config_params["k"] = 1
 config_params["grad_repeats"] = int(1)
 config_params['max_steps'] = int(2E5) / 100
 config_params['max_episodes'] = int(1e3) / 100
@@ -120,4 +121,5 @@ bayes_experiment = BayesExperiment(
 
 bayes_experiment.run(number_BO_episodes)
 
-bayes_experiment.evaluate_best_preference()
+evaluation = bayes_experiment.evaluate_best_preference(num_samples=10)
+print(evaluation)
