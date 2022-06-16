@@ -172,21 +172,22 @@ class BayesExperiment:
         # get new preference
         GP : sklearn.gaussian_process.GaussianProcessRegressor = self.optimizer._gp
         bounds = self.optimizer._space.bounds
-        # random_state = self.optimizer._random_state
         # n_warmup = 10000
         # x_tries = random_state.uniform(bounds[:, 0], bounds[:, 1],
         #                            size=(n_warmup, bounds.shape[0]))
         
         for _ in range(num_samples):
-            n_points = 10000
+            n_points = 500
             X = np.linspace(bounds[:,0], bounds[:,1], n_points)
-            y = GP.sample_y(X = X, n_samples=1)
+            y = GP.sample_y(X = X, n_samples=1, random_state=self.optimizer._random_state)
             max_id = y.argmax()
-            max_y = y[max_id]
+            max_y = float(y[max_id])
             max_x = X[max_id]
 
             best_preference_proj = max_x
             best_preference = increase_dim(best_preference_proj)
+
+            print("Evaluating preference:", best_preference)
 
             experiment = Experiment(
                 learner=new_learner,
@@ -199,7 +200,7 @@ class BayesExperiment:
                 uncertainty=None,
                 showFigure=False
             )
-            metric = experiment.evaluate(num_episodes=num_episodes)
+            metric = experiment.evaluate(num_episodes=num_episodes) if num_episodes is not None else experiment.evaluate()
             metrics.append((best_preference, metric, max_y))
 
         return metrics

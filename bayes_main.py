@@ -121,5 +121,7 @@ bayes_experiment = BayesExperiment(
 
 bayes_experiment.run(number_BO_episodes)
 
-evaluation = bayes_experiment.evaluate_best_preference(num_samples=10)
-print(evaluation)
+evaluation = bayes_experiment.evaluate_best_preference(num_samples=5)
+average_global_reward = np.average([metric for _,metric,_ in evaluation])
+# TODO log(evaluation)
+print("Average global reward:", average_global_reward)
