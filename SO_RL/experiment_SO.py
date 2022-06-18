@@ -19,7 +19,7 @@ class Experiment_SO:
         self.max_steps = params.get('max_steps', int(1E9))
         self.grad_repeats = params.get('grad_repeats', 1)
         self.batch_size = params.get('batch_size', 1024)
-        self.epi_len = params.get('max_episode_length', 500)  # TODO: change 500 to a variable based on environment
+        self.epi_len = params.get('max_episode_length', 500)
         self.render_step = params.get('render_step', 100)
 
         # Plot setup

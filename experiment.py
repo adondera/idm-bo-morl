@@ -35,7 +35,7 @@ class Experiment:
         self.batch_size = params.get("batch_size", 1024)
         self.epi_len = params.get(
             "max_episode_length", 500
-        )  # TODO: change 500 to a variable based on environment
+        )
         self.render_step = params.get("render_step", 100)
         self.use_last_episode = params.get("use_last_episode", True)
 

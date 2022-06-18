@@ -113,9 +113,6 @@ class ReplayBuffer:
         # Sample transitions
         transitions = {key: temp_buffers[key][idxs] for key in temp_buffers.keys()}
 
-        # TODO: Check if there can be any problems here with the size of the last episode and the batch size
-        # TODO: I think it should be fine however
-
         # Adds an episode given as parameter to the sampled transitions.
         if last_episode:
             last_episode_size = last_episode[0].shape[0]
