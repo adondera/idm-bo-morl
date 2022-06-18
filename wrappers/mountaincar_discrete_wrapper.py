@@ -6,6 +6,7 @@ class DiscreteMountainCar3Distance(RescaledEnv):
         super().__init__(env, max_episode_length)
         self.numberPreferences = 3
         self.reward_names = ["-Distance to left hill", "-Distance to start", "-Distance to right hill"]
+        self.tags = ["Sparse", "MountainCar", "Distance left / Distance center / Distance right"]
 
     def reward(self, reward: float) -> tuple[tuple[float, float, float], float]:
         """
@@ -29,6 +30,7 @@ class DiscreteMountainCarVelocity(RescaledEnv):
         super().__init__(env, max_episode_length)
         self.numberPreferences = 1
         self.reward_names = ["Current velocity"]
+        self.tags = ["Sparse", "MountainCar", "Velocity"]
 
     def reward(self, reward: float) -> tuple[tuple[float,], float]:
         """
@@ -40,19 +42,18 @@ class DiscreteMountainCarVelocity(RescaledEnv):
         return (current_velocity,), reward
 
 
-class DiscreteMountainCarNormal(RescaledEnv):
+class DiscreteMountainCarVelocityDistance(RescaledEnv):
     def __init__(self, env, max_episode_length=None):
         super().__init__(env, max_episode_length)
-        self.numberPreferences = 1
-        self.reward_names = ["Global reward"]
+        self.numberPreferences = 2
+        self.reward_names = ["Velocity", "-Distance to goal"]
+        self.tags = ["Sparse", "MountainCar", "Velocity / Negative distance"]
 
-    def reward(self, reward: float) -> tuple[tuple[float,], float]:
-        return (reward,), reward
-
-# Use this code to play the environment or for debugging purposes
-
-# env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
-# env.reset()
-# print(env.step(0))
-
-# play(env)
+    def reward(self, reward: float) -> tuple[tuple[float, float], float]:
+        goal_position = self.env.unwrapped.goal_position
+        start_position = -0.5
+        current_position, current_velocity = self.env.unwrapped.state
+        distance_right_to_start = abs(goal_position - start_position)
+        distance_to_right_hill = abs(current_position - goal_position)
+        distance_metric = min(distance_right_to_start, distance_to_right_hill)
+        return (abs(current_velocity), -distance_metric), reward

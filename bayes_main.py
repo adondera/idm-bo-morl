@@ -7,6 +7,7 @@ from wrappers.cartpole_v1_wrapper import (
     SparseCartpole,
     CartPoleNoisyRewardWrapper
 )
+from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarVelocityDistance
 from wrappers.mo_wrapper import RescaledReward
 from replay_buffer import ReplayBuffer
 from config import default_params
@@ -22,8 +23,8 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-env = RescaledReward(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1")))
-# env = DiscreteMountainCar3Distance(gym.make("MountainCar-v0"))
+# env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
+env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -37,17 +38,13 @@ env_params = {
 }
 
 model = torch.nn.Sequential(
-    torch.nn.Linear(env_params["states"][0][0] + env_params["rewards"][0][0], 215),
+    torch.nn.Linear(env_params['states'][0][0] + env_params["rewards"][0][0], 128),
     torch.nn.ReLU(),
-    torch.nn.Linear(215, 512),
+    torch.nn.Linear(128, 512),
     torch.nn.ReLU(),
-    torch.nn.Linear(512, 1024),
+    torch.nn.Linear(512, 128),
     torch.nn.ReLU(),
-    torch.nn.Linear(1024, 512),
-    torch.nn.ReLU(),
-    torch.nn.Linear(512, 215),
-    torch.nn.ReLU(),
-    torch.nn.Linear(215, env.action_space.n),
+    torch.nn.Linear(128, env.action_space.n),
 )
 
 # These configuration parameters need to be changed depending on the environment
@@ -63,10 +60,10 @@ config_params["uncertainty_scale"] = 0
 config_params["preference_dim"] = env_params["preferences"][0][0]
 
 # These parameters refer to the DDQN agent. Again, dependent on the environment.
-config_params["k"] = 1
+config_params["k"] = 10
 config_params["grad_repeats"] = int(1)
-config_params['max_steps'] = int(2E5) / 100
-config_params['max_episodes'] = int(1e3) / 100
+config_params['max_steps'] = int(2E5)
+config_params['max_episodes'] = int(1e3)
 
 # TODO add to default_params()
 config_params["number_BO_episodes"] = 5
