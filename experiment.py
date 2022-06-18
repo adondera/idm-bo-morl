@@ -8,16 +8,16 @@ from scipy.ndimage import uniform_filter1d
 
 class Experiment:
     def __init__(
-        self,
-        learner,
-        buffer,
-        env,
-        reward_dim,
-        preference,
-        params,
-        device,
-        uncertainty=None,
-        showFigure = True
+            self,
+            learner,
+            buffer,
+            env,
+            reward_dim,
+            preference,
+            params,
+            device,
+            uncertainty=None,
+            showFigure=True
     ):
         self.learner = learner
         self.buffer = buffer
@@ -53,7 +53,7 @@ class Experiment:
         # Uncertainty
         self.uncertainty = uncertainty
         self.intrinsic_reward = (
-            params.get("intrinsic_reward", True) and uncertainty is not None
+                params.get("intrinsic_reward", True) and uncertainty is not None
         )
 
     def _learn_from_episode(self, episode):
@@ -97,7 +97,7 @@ class Experiment:
                 action = self.learner.choose_action(
                     torch.from_numpy(state), torch.from_numpy(self.preference)
                 )
-            else: 
+            else:
                 action = self.learner.get_greedy_value(torch.from_numpy(state), torch.from_numpy(self.preference))
 
             next_state, (r, z), done, info = self.env.step(action)
@@ -137,7 +137,7 @@ class Experiment:
             "global_reward": globalReward,
             "cumulative_mo_rewards": cumulative_mo_rewards,
             "scalarized_reward": sum([self.preference[i] * cumulative_mo_rewards[i] for i, _ in
-                                       enumerate(cumulative_mo_rewards)])
+                                      enumerate(cumulative_mo_rewards)])
         }
 
     def run(self):
@@ -155,9 +155,9 @@ class Experiment:
                 self.mo_rewards[i].append(mo_reward)
             self.scalarized_reward.append(episode['scalarized_reward'])
             if (
-                self.plot_frequency is not None
-                and (e + 1) % self.plot_frequency == 0
-                and len(self.losses) > 2
+                    self.plot_frequency is not None
+                    and (e + 1) % self.plot_frequency == 0
+                    and len(self.losses) > 2
             ):
                 if self.plot_train_samples:
                     self.plot(env_steps)
@@ -167,7 +167,7 @@ class Experiment:
                 break
         plt.close(self.fig)
 
-    def evaluate(self, num_episodes = 10, preference = None):
+    def evaluate(self, num_episodes=10, preference=None):
         env_steps = 0
         # for e in tqdm.tqdm():
         old_preference = self.preference

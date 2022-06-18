@@ -44,7 +44,7 @@ class BayesExperiment:
         self.pbounds = pbounds
         self.metric_fun = metric_fun
         self.discarded_rewards = ([], [])
-        self.enable_wandb = False
+        self.enable_wandb = config_params.get("wandb", True)
         self.numberPreferences = int(env_params["preferences"][0][0])
 
         if not isinstance(dirichlet_alpha, np.ndarray) or len(dirichlet_alpha) != self.numberPreferences:
@@ -175,7 +175,8 @@ class BayesExperiment:
         # n_warmup = 10000
         # x_tries = random_state.uniform(bounds[:, 0], bounds[:, 1],
         #                            size=(n_warmup, bounds.shape[0]))
-        
+        if self.enable_wandb:
+            preference_table = wandb.Table(columns=["Best Preference", "Max_Y", "Metric"])
         for _ in range(num_samples):
             n_points = 500
             X = np.linspace(bounds[:,0], bounds[:,1], n_points)
@@ -202,31 +203,7 @@ class BayesExperiment:
             )
             metric = experiment.evaluate(num_episodes=num_episodes) if num_episodes is not None else experiment.evaluate()
             metrics.append((best_preference, metric, max_y))
+            if self.enable_wandb:
+                preference_table.add_data(best_preference, max_y, metric)
 
         return metrics
-
-
-
-    # Run an episode by evaluating the greedy policy learned by the agent
-    # The policy is deterministic, hence only 1 episode is required to evaluate it
-    # def evaluate(self, model, preference, num_episodes=10):
-    #     config = self.config_params.copy()
-    #     config["epsilon_start"] = 0
-    #     config["epsilon_finish"] = 0
-    #     global_rewards = []
-    #     new_learner = DQN(model, config, self.device, self.env)
-    #     experiment = Experiment(
-    #         learner=new_learner,
-    #         buffer=None,
-    #         env=self.env,
-    #         reward_dim=self.env_params["rewards"][0][0],
-    #         preference=preference,
-    #         params=self.config_params,
-    #         device=self.device,
-    #         uncertainty=None,
-    #     )
-    #     for _ in range(num_episodes):
-    #         plt.close(experiment.fig)
-    #         results = experiment._run_episode()
-    #         global_rewards.append(results["global_reward"])
-    #     return np.average(global_rewards)

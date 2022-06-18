@@ -32,4 +32,4 @@ class LunarLanderVelocityDistanceWrapper(MOWrapper):
             1.0 if self.legs[1].ground_contact else 0.0,
         ]
         # TODO: Figure out the distance to the helipad
-        return (-state[2], -state[3],), reward
+        return (-abs(state[2]), -abs(state[3]),), reward
