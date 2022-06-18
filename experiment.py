@@ -8,15 +8,16 @@ from scipy.ndimage import uniform_filter1d
 
 class Experiment:
     def __init__(
-        self,
-        learner,
-        buffer,
-        env,
-        reward_dim,
-        preference,
-        params,
-        device,
-        uncertainty=None,
+            self,
+            learner,
+            buffer,
+            env,
+            reward_dim,
+            preference,
+            params,
+            device,
+            uncertainty=None,
+            showFigure=True
     ):
         self.learner = learner
         self.buffer = buffer
@@ -34,7 +35,7 @@ class Experiment:
         self.batch_size = params.get("batch_size", 1024)
         self.epi_len = params.get(
             "max_episode_length", 500
-        )  # TODO: change 500 to a variable based on environment
+        )
         self.render_step = params.get("render_step", 100)
         self.use_last_episode = params.get("use_last_episode", True)
 
@@ -44,13 +45,15 @@ class Experiment:
         self.fig, (self.ax1, self.ax2, self.ax3, self.ax4) = plt.subplots(
             4, 1, figsize=(6, 10)
         )
-        plt.ion()
-        plt.draw()
+        self.showFigure = showFigure
+        if showFigure:
+            plt.ion()
+            plt.draw()
 
         # Uncertainty
         self.uncertainty = uncertainty
         self.intrinsic_reward = (
-            params.get("intrinsic_reward", True) and uncertainty is not None
+                params.get("intrinsic_reward", True) and uncertainty is not None
         )
 
     def _learn_from_episode(self, episode):
@@ -76,7 +79,7 @@ class Experiment:
         else:
             return None
 
-    def _run_episode(self, render=False):
+    def _run_episode(self, render=False, test=True):
         states, actions, rewards, preferences, next_states, dones = (
             [],
             [],
@@ -90,9 +93,13 @@ class Experiment:
         globalReward = 0
         cumulative_mo_rewards = [0 for _ in range(len(self.mo_rewards))]
         for t in range(self.epi_len):
-            action = self.learner.choose_action(
-                torch.from_numpy(state), torch.from_numpy(self.preference)
-            )
+            if not test:
+                action = self.learner.choose_action(
+                    torch.from_numpy(state), torch.from_numpy(self.preference)
+                )
+            else:
+                action = self.learner.get_greedy_value(torch.from_numpy(state), torch.from_numpy(self.preference))
+
             next_state, (r, z), done, info = self.env.step(action)
             # Store transitions in replay buffer
             terminal = done and t < self.epi_len - 1
@@ -130,7 +137,7 @@ class Experiment:
             "global_reward": globalReward,
             "cumulative_mo_rewards": cumulative_mo_rewards,
             "scalarized_reward": sum([self.preference[i] * cumulative_mo_rewards[i] for i, _ in
-                                       enumerate(cumulative_mo_rewards)])
+                                      enumerate(cumulative_mo_rewards)])
         }
 
     def run(self):
@@ -148,9 +155,9 @@ class Experiment:
                 self.mo_rewards[i].append(mo_reward)
             self.scalarized_reward.append(episode['scalarized_reward'])
             if (
-                self.plot_frequency is not None
-                and (e + 1) % self.plot_frequency == 0
-                and len(self.losses) > 2
+                    self.plot_frequency is not None
+                    and (e + 1) % self.plot_frequency == 0
+                    and len(self.losses) > 2
             ):
                 if self.plot_train_samples:
                     self.plot(env_steps)
@@ -159,6 +166,21 @@ class Experiment:
             if env_steps >= self.max_steps:
                 break
         plt.close(self.fig)
+
+    def evaluate(self, num_episodes=10, preference=None):
+        env_steps = 0
+        # for e in tqdm.tqdm():
+        old_preference = self.preference
+        if preference is not None:
+            self.preference = preference
+        global_rewards = []
+        with torch.no_grad():
+            for _ in range(num_episodes):
+                episode = self._run_episode(render=False, test=True)
+                env_steps += episode["env_steps"]
+                global_rewards.append(episode["global_reward"])
+        self.preference = old_preference
+        return np.average(global_rewards)
 
     def plot(self, current_steps=None):
         current_steps = (
@@ -205,5 +227,6 @@ class Experiment:
         )
         self.ax4.legend()
 
-        plt.draw()
-        plt.pause(0.02)
+        if self.showFigure:
+            plt.draw()
+            plt.pause(0.02)

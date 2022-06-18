@@ -22,4 +22,5 @@ def increase_dim(x: dict or np.array):
     # 1.0 is the norm/radius, x.values() are the angles
     l = torch.tensor(np.concatenate(([1.0], angles)), dtype=torch.float32)
     rectangular_proj = n_sphere.convert_rectangular(l)
-    return torch.nn.functional.normalize(rectangular_proj, p=1.0, dim=0).numpy()
+    normalized_proj = torch.nn.functional.normalize(rectangular_proj, p=1.0, dim=0)
+    return torch.clamp(normalized_proj, 0., 1.).numpy()

@@ -4,7 +4,6 @@ import torch
 import numpy as np
 from copy import deepcopy
 
-
 class DQN_SO:
     def __init__(self, model, params, device, env):
         self.device = device

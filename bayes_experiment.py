@@ -1,4 +1,3 @@
-from unicodedata import numeric
 import matplotlib.pyplot as plt
 import numpy as np
 import wandb
@@ -14,6 +13,7 @@ import scipy.stats
 
 from spherical_coords import reduce_dim, increase_dim
 
+import sklearn.gaussian_process
 
 class BayesExperiment:
     def __init__(
@@ -44,7 +44,7 @@ class BayesExperiment:
         self.pbounds = pbounds
         self.metric_fun = metric_fun
         self.discarded_rewards = ([], [])
-
+        self.enable_wandb = config_params.get("wandb", True)
         self.numberPreferences = int(env_params["preferences"][0][0])
 
         if not isinstance(dirichlet_alpha, np.ndarray) or len(dirichlet_alpha) != self.numberPreferences:
@@ -55,10 +55,11 @@ class BayesExperiment:
         # TODO make into param
         self.prior = scipy.stats.dirichlet(alpha=self.dirichlet_alpha)
 
-        wandb.init(project="test-project", entity="idm-morl-bo",
-                   tags=["Bayes"] + self.env.tags,
-                   config=self.config_params)
-        wandb.run.log_code()
+        if self.enable_wandb:
+            wandb.init(project="test-project", entity="idm-morl-bo",
+                    tags=["Bayes"] + self.env.tags,
+                    config=self.config_params)
+            wandb.run.log_code()
         self.fig, self.ax = plt.subplots(1, 1, figsize=(9, 5))
 
     def plot_bo(self, f=None):
@@ -81,7 +82,8 @@ class BayesExperiment:
         plt.draw()
 
     def run(self, number_of_experiments=None):
-        preference_table = wandb.Table(columns=[i for i in range(self.env.numberPreferences)])
+        if self.enable_wandb:
+            preference_table = wandb.Table(columns=[i for i in range(self.env.numberPreferences)])
         if number_of_experiments is None:
             number_of_experiments = self.config_params.get("number_BO_experiments", 20)
 
@@ -125,7 +127,7 @@ class BayesExperiment:
                 uncertainty=rnd,
             )
             experiment.run()
-            metric = self.evaluate(learner.model, preference=next_preference)
+            metric = experiment.evaluate(num_episodes=10)
             if not discard_sample:
                 self.global_rewards.append(metric)
                 self.optimizer.register(params=next_preference_proj, target=metric)
@@ -136,12 +138,13 @@ class BayesExperiment:
 
             self.optimizer.suggest(self.utility)
             self.plot_bo()
-            preference_table.add_data(*next_preference.tolist())
-            wandb.log({
-                "Target": metric,
-                f"Experiment {experiment_id} plot": experiment.fig,
-                "BO plot": wandb.Image(self.fig)
-            })
+            if self.enable_wandb:
+                preference_table.add_data(*next_preference.tolist())
+                wandb.log({
+                    "Target": metric,
+                    f"Experiment {experiment_id} plot": experiment.fig,
+                    "BO plot": wandb.Image(self.fig)
+                })
             # self.optimizer.suggest(self.utility)
         measured_max = self.optimizer.max
         measured_max = measured_max["target"], measured_max["params"], increase_dim(measured_max["params"])
@@ -149,32 +152,58 @@ class BayesExperiment:
         # gp_max = self.optimizer.space.target.argmax()
         print(
             f"The maximum is: {measured_max[0]}, preference={measured_max[2]} (spherical: {list(measured_max[1].values())})")
-        wandb.log({
-            "Preferences": preference_table
-        })
+        if self.enable_wandb:
+            wandb.log({
+                "Preferences": preference_table
+            })
 
-        wandb.run.summary["Global reward metric"] = measured_max[0]
+            wandb.run.summary["Global reward metric"] = measured_max[0]
+    
+    def evaluate_best_preference(self, num_samples=10, num_episodes=None):
+        """
+        Returns list of (preference, global reward from the evaluation, global reward predicted by the GP)
+        """
 
-    # Run an episode by evaluating the greedy policy learned by the agent
-    # The policy is deterministic, hence only 1 episode is required to evaluate it
-    def evaluate(self, model, preference, num_episodes=10):
-        config = self.config_params.copy()
-        config["epsilon_start"] = 0
-        config["epsilon_finish"] = 0
-        global_rewards = []
-        new_learner = DQN(model, config, self.device, self.env)
-        experiment = Experiment(
-            learner=new_learner,
-            buffer=None,
-            env=self.env,
-            reward_dim=self.env_params["rewards"][0][0],
-            preference=preference,
-            params=self.config_params,
-            device=self.device,
-            uncertainty=None,
-        )
-        for _ in range(num_episodes):
-            plt.close(experiment.fig)
-            results = experiment._run_episode()
-            global_rewards.append(results["global_reward"])
-        return np.average(global_rewards)
+        metrics = []
+
+        new_learner = DQN(self.model, self.config_params, self.device, self.env)
+
+
+        # get new preference
+        GP : sklearn.gaussian_process.GaussianProcessRegressor = self.optimizer._gp
+        bounds = self.optimizer._space.bounds
+        # n_warmup = 10000
+        # x_tries = random_state.uniform(bounds[:, 0], bounds[:, 1],
+        #                            size=(n_warmup, bounds.shape[0]))
+        if self.enable_wandb:
+            preference_table = wandb.Table(columns=["Best Preference", "Max_Y", "Metric"])
+        for _ in range(num_samples):
+            n_points = 500
+            X = np.linspace(bounds[:,0], bounds[:,1], n_points)
+            y = GP.sample_y(X = X, n_samples=1, random_state=self.optimizer._random_state)
+            max_id = y.argmax()
+            max_y = float(y[max_id])
+            max_x = X[max_id]
+
+            best_preference_proj = max_x
+            best_preference = increase_dim(best_preference_proj)
+
+            print("Evaluating preference:", best_preference)
+
+            experiment = Experiment(
+                learner=new_learner,
+                buffer=None,
+                env=self.env,
+                reward_dim=self.env_params["rewards"][0][0],
+                preference=best_preference,
+                params=self.config_params,
+                device=self.device,
+                uncertainty=None,
+                showFigure=False
+            )
+            metric = experiment.evaluate(num_episodes=num_episodes) if num_episodes is not None else experiment.evaluate()
+            metrics.append((best_preference, metric, max_y))
+            if self.enable_wandb:
+                preference_table.add_data(best_preference, max_y, metric)
+
+        return metrics

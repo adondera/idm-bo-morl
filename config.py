@@ -56,5 +56,6 @@ def default_params():
         "length_scale": 0.1,
         "xi": 0.1,
         "kappa": 2.5,
-        "nu": 2.5
+        "nu": 2.5,
+        "number_BO_episodes": 5
     }

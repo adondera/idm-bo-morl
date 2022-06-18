@@ -33,7 +33,6 @@ class ReplayBuffer_SO:
     def store_episode(self, episode_batch):
         mb_state, mb_action, mb_reward, mb_next_state = episode_batch
         batch_size = mb_state.shape[0]
-        # TODO: Is it better to add the sampled preferences in the experience buffer when storing or when sampling?
         # Adds a new randomly sampled normally distributed preference vector for each transition
         with self.lock:
             # self.k is set to 0 => only 1 repeat stored

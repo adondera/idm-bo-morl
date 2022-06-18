@@ -47,31 +47,12 @@ model = torch.nn.Sequential(
     torch.nn.Linear(128, env.action_space.n),
 )
 
-# These configuration parameters need to be changed depending on the environment
-config_params = default_params()
-config_params[
-    "render_step"
-] = 0  # Change this to something like 100 if you want to render the environment
-
-# Change these two to tweak the intrinsic rewards with RND. The higher the uncertainty scale,
-# the more important intrinsic rewards will be. Depends from environment to environment, requires tweaking.
-config_params["intrinsic_reward"] = False
-config_params["uncertainty_scale"] = 0
+config_params = env.get_config()
 config_params["preference_dim"] = env_params["preferences"][0][0]
-
-# These parameters refer to the DDQN agent. Again, dependent on the environment.
-config_params["k"] = 10
-config_params["grad_repeats"] = int(1)
-config_params['max_steps'] = int(2E5)
-config_params['max_episodes'] = int(1e3)
-
-# TODO add to default_params()
-config_params["number_BO_episodes"] = 5
-
 """
     `discarded_experiments_length_factor` = n will make the initial experiments n times longer
 """
-config_params["discarded_experiments_length_factor"] = 1
+config_params["discarded_experiments_length_factor"] = 1.0
 
 number_BO_episodes = config_params["number_BO_episodes"]
 config_params["discarded_experiments"] = 0  # max(2,number_BO_episodes/10)
@@ -117,3 +98,8 @@ bayes_experiment = BayesExperiment(
 )
 
 bayes_experiment.run(number_BO_episodes)
+
+evaluation = bayes_experiment.evaluate_best_preference(num_samples=5)
+average_global_reward = np.average([metric for _, metric, _ in evaluation])
+
+print("Average global reward:", average_global_reward)

@@ -1,5 +1,21 @@
 import random
 from .mo_wrapper import MOWrapper
+import config
+
+# Change these two to tweak the intrinsic rewards with RND. The higher the uncertainty scale,
+# the more important intrinsic rewards will be. Depends from environment to environment, requires tweaking.
+def get_cartpole_config():
+    config_params = config.default_params()
+    config_params["k"] = 10
+    config_params[
+        "render_step"
+    ] = 0
+    config_params["intrinsic_reward"] = False
+    config_params["uncertainty_scale"] = 0
+    config_params["grad_repeats"] = int(1)
+    config_params['max_steps'] = int(2E5)
+    config_params['max_episodes'] = int(1e3)
+    return config_params
 
 
 class CartPoleConstRewardWrapper(MOWrapper):
@@ -26,6 +42,9 @@ class CartPoleConstRewardWrapper(MOWrapper):
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
 
+    def get_config(self):
+        return get_cartpole_config()
+
 
 class CartPoleNoisyRewardWrapper(MOWrapper):
     """
@@ -51,6 +70,9 @@ class CartPoleNoisyRewardWrapper(MOWrapper):
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
 
+    def get_config(self):
+        return get_cartpole_config()
+
 
 class CartPoleV1AngleRewardWrapper(MOWrapper):
     """
@@ -74,6 +96,9 @@ class CartPoleV1AngleRewardWrapper(MOWrapper):
         z = reward
         return R, z
         # Returns (tuple of multi-objective rewards), z reward
+
+    def get_config(self):
+        return get_cartpole_config()
 
 
 class CartPoleV1AngleNegEnergyRewardWrapper(MOWrapper):
@@ -112,6 +137,9 @@ class CartPoleV1AngleNegEnergyRewardWrapper(MOWrapper):
         self.previous_state = None
         return self.env.reset(**kwargs)
 
+    def get_config(self):
+        return get_cartpole_config()
+
 
 class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
     """
@@ -149,6 +177,9 @@ class CartPoleV1AnglePosEnergyRewardWrapper(MOWrapper):
         self.previous_state = None
         return self.env.reset(**kwargs)
 
+    def get_config(self):
+        return get_cartpole_config()
+
 
 class SparseCartpole(MOWrapper):
     """
@@ -180,3 +211,6 @@ class SparseCartpole(MOWrapper):
         self.total_steps = 0
         self.previous_state = None
         return self.env.reset(**kwargs)
+
+    def get_config(self):
+        return get_cartpole_config()
