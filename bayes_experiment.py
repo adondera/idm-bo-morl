@@ -205,5 +205,8 @@ class BayesExperiment:
             metrics.append((best_preference, metric, max_y))
             if self.enable_wandb:
                 preference_table.add_data(best_preference, max_y, metric)
-
+        if self.enable_wandb:
+            wandb.log({
+                "Evaluations": preference_table
+            })
         return metrics
