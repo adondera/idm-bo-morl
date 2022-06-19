@@ -3,10 +3,7 @@ import torch
 import matplotlib
 from sklearn.gaussian_process.kernels import Matern
 
-from wrappers.cartpole_v1_wrapper import (
-    SparseCartpole,
-    CartPoleNoisyRewardWrapper
-)
+from wrappers.cartpole_v1_wrapper import SparseCartpole, CartPoleNoisyRewardWrapper
 from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarVelocityDistance
 from wrappers.mo_wrapper import RescaledReward
 from replay_buffer import ReplayBuffer
@@ -24,7 +21,9 @@ else:
     matplotlib.use("Qt5agg")
 
 # env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
-env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
+env = RescaledReward(
+    DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1]
+)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -38,7 +37,7 @@ env_params = {
 }
 
 model = torch.nn.Sequential(
-    torch.nn.Linear(env_params['states'][0][0] + env_params["rewards"][0][0], 128),
+    torch.nn.Linear(env_params["states"][0][0] + env_params["rewards"][0][0], 128),
     torch.nn.ReLU(),
     torch.nn.Linear(128, 512),
     torch.nn.ReLU(),
@@ -58,17 +57,24 @@ number_BO_episodes = config_params["number_BO_episodes"]
 config_params["discarded_experiments"] = 0  # max(2,number_BO_episodes/10)
 config_params["prior_only_experiments"] = 0  # max(4, number_BO_episodes/5)
 
-# These parameters affect the bayesian optimization process
-alpha = 0.1
-length_scale = pi / 4
-xi = 100.0  # xi should be the ~half the difference between the lowest and highest score
-kappa = 10.0
-nu = 2.5
+# --- These parameters affect the bayesian optimization process ---
 
 # to try and optimize with negative weights, change to
 #  default_bounds = (-pi, pi)
 default_bounds = (0, pi / 2)
-dirichlet_alpha = np.array([5.0])
+dirichlet_alpha = np.array(
+    config_params.get(
+        "dirichlet_alpha", np.repeat(5.0, int(env_params["preferences"][0][0] - 1))
+    )
+)
+
+alpha = config_params["alpha"]
+length_scale = default_bounds[1] * config_params["length_scale_to_bounds_ratio"]
+# xi should be the ~half the difference between the lowest and highest score
+xi = config_params["xi"]
+kappa = config_params["kappa"]
+nu = config_params["nu"]
+utility_function = config_params.get("utility_function", "ucb")
 
 optimizer = BayesianOptimization(
     f=None,
@@ -77,7 +83,7 @@ optimizer = BayesianOptimization(
     verbose=2,
     random_state=1,
 )
-utility = UtilityFunction(kind="ucb", kappa=kappa, xi=xi)
+utility = UtilityFunction(kind=utility_function, kappa=kappa, xi=xi)
 optimizer.set_gp_params(alpha=alpha)
 
 buffer = ReplayBuffer(
@@ -94,7 +100,7 @@ bayes_experiment = BayesExperiment(
     env=env,
     env_params=env_params,
     pbounds=default_bounds,
-    dirichlet_alpha=dirichlet_alpha
+    dirichlet_alpha=dirichlet_alpha,
 )
 
 bayes_experiment.run(number_BO_episodes)
