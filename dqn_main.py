@@ -30,8 +30,8 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-# env = RescaledReward(SparseCartpole(CartPoleV1AngleNegEnergyRewardWrapper(gym.make("CartPole-v1"))), [1, 1/5])
-env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
+env = RescaledReward(SparseCartpole(CartPoleV1AnglePosEnergyRewardWrapper(gym.make("CartPole-v1"))))
+# env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -44,15 +44,9 @@ env_params = {
     "dones": ((1,), torch.bool)
 }
 
-config_params = default_params()
-config_params["intrinsic_reward"] = True
-config_params["uncertainty_scale"] = 400
+config_params = env.get_config()
 config_params["k"] = 0
-config_params['max_steps'] = int(2E5)
-config_params['max_episodes'] = int(1e3)
-config_params["grad_repeats"] = int(10)
-config_params['render_step'] = 100
-preference = np.array([1.0, 0.0], dtype=np.single)
+preference = np.array([0.5, 0.5], dtype=np.single)
 
 multi_objective = True
 tag = "MO_DQN" if multi_objective else "SO_DQN"
