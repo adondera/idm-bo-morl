@@ -51,7 +51,7 @@ preference = np.array([0.5, 0.5], dtype=np.single)
 multi_objective = True
 tag = "MO_DQN" if multi_objective else "SO_DQN"
 
-wandb.init(project="test-project", entity="idm-morl-bo", tags=[tag, env.spec.id], config=config_params)
+wandb.init(project="test-project", entity="idm-morl-bo", tags=[tag] + env.tags, config=config_params)
 preference_table = wandb.Table(columns=[i for i in range(env.numberPreferences)])
 preference_table.add_data(*preference)
 wandb.log({
