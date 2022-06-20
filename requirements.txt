@@ -1,0 +1,8 @@
+scipy
+numpy
+torch
+matplotlib
+gym[classic_control]
+wandb
+sklearn
+n-sphere

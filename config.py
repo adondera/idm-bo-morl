@@ -1,5 +1,5 @@
 def default_params():
-    """ These are the default parameters used int eh framework. """
+    """These are the default parameters used int eh framework."""
     return {  # Debugging outputs and plotting during training
         "plot_frequency": 10,  # plots a debug message avery n steps
         "plot_train_samples": True,  # whether the x-axis is env.steps (True) or episodes (False)
@@ -42,7 +42,7 @@ def default_params():
         "preference_dim": 0,  # Dimension of preferences. Default value of 0 means preference is not taken into account
         # MO parameters
         "k": 5,  # number of preferences that are sampled in her storing
-        'multi_objective': True,  # whether to use multi or single-objective RL
+        "multi_objective": True,  # whether to use multi or single-objective RL
         "norm": 1,  # The power at which each objective reward is raised (e.g. 2 ==> quadratic rewards)
         # Image input parameters
         "pixel_observations": False,  # use pixel observations (we will not use this feature here)
@@ -52,10 +52,12 @@ def default_params():
         "pixel_last_obs_delay": 3,  # delay between the two stacked observations
         "render_step": 100,  # Number of episodes between different renders. Set to <=0 to disable rendering
         # Bayes optimization parameters
+        # "dirichelet_alpha": [5.0],
         "alpha": 0.1,
-        "length_scale": 0.1,
-        "xi": 0.1,
-        "kappa": 2.5,
+        "length_scale_to_bounds_ratio": 0.5,
+        "xi": 100,
+        "kappa": 10.0,
         "nu": 2.5,
-        "number_BO_episodes": 5
+        "utility_function": "ucb",
+        "number_BO_episodes": 5,
     }
