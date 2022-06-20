@@ -32,9 +32,7 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-env = RescaledReward(
-    SparseCartpole(CartPoleV1AnglePosEnergyRewardWrapper(gym.make("CartPole-v1")))
-)
+env = RescaledReward(SparseCartpole(CartPoleV1AnglePosEnergyRewardWrapper(gym.make("CartPole-v1"))))
 # env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -55,12 +53,7 @@ preference = np.array([0.5, 0.5], dtype=np.single)
 multi_objective = True
 tag = "MO_DQN" if multi_objective else "SO_DQN"
 
-wandb.init(
-    project="test-project",
-    entity="idm-morl-bo",
-    tags=[tag] + env.tags,
-    config=config_params,
-)
+wandb.init(project="test-project", entity="idm-morl-bo", tags=[tag] + env.tags, config=config_params)
 preference_table = wandb.Table(columns=[i for i in range(env.numberPreferences)])
 preference_table.add_data(*preference)
 wandb.log({"Preference": preference_table})
@@ -95,14 +88,10 @@ if multi_objective:
     )
 else:
     model = torch.nn.Sequential(
-        torch.nn.Linear(env_params["states"][0][0] + env_params["rewards"][0][0], 128),
-        torch.nn.ReLU(),
-        torch.nn.Linear(128, 512),
-        torch.nn.ReLU(),
-        torch.nn.Linear(512, 128),
-        torch.nn.ReLU(),
-        torch.nn.Linear(128, env.action_space.n),
-    )
+        torch.nn.Linear(env_params['states'][0][0], 128), torch.nn.ReLU(),
+        torch.nn.Linear(128, 512), torch.nn.ReLU(),
+        torch.nn.Linear(512, 128), torch.nn.ReLU(),
+        torch.nn.Linear(128, env.action_space.n))
 
     learner = DQN_SO(model, config_params, device, env)
     buffer = ReplayBuffer_SO(env_params, buffer_size=int(1e5), device=device)
@@ -128,4 +117,5 @@ wandb.log(
 )
 
 wandb.run.log_code()
-wandb.run.summary["Global reward metric"] = metric_fun(experiment.global_rewards)[0]
+wandb.run.summary["Global reward metric"] = experiment.evaluate()
+
