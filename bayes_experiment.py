@@ -209,4 +209,6 @@ class BayesExperiment:
             wandb.log({
                 "Evaluations": preference_table
             })
+            average_global_reward = np.average([metric for _, metric, _ in metrics])
+            wandb.run.summary["Global reward metric"] = average_global_reward
         return metrics

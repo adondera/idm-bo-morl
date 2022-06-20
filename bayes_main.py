@@ -5,12 +5,13 @@ from sklearn.gaussian_process.kernels import Matern
 
 from wrappers.cartpole_v1_wrapper import (
     SparseCartpole,
+    CartPoleV1AngleNegEnergyRewardWrapper,
+    CartPoleV1AnglePosEnergyRewardWrapper,
     CartPoleNoisyRewardWrapper
 )
 from wrappers.mountaincar_discrete_wrapper import DiscreteMountainCarVelocityDistance
 from wrappers.mo_wrapper import RescaledReward
 from replay_buffer import ReplayBuffer
-from config import default_params
 from bayes_experiment import BayesExperiment
 from BayesianOptimization.bayes_opt import BayesianOptimization, UtilityFunction
 
@@ -23,8 +24,8 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-# env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
-env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
+env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
+# env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

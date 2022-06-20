@@ -48,7 +48,7 @@ config_params = env.get_config()
 config_params["k"] = 0
 preference = np.array([0.5, 0.5], dtype=np.single)
 
-multi_objective = True
+multi_objective = False
 tag = "MO_DQN" if multi_objective else "SO_DQN"
 
 wandb.init(project="test-project", entity="idm-morl-bo", tags=[tag] + env.tags, config=config_params)
@@ -72,7 +72,7 @@ if multi_objective:
                             preference=preference, params=config_params, device=device, uncertainty=rnd)
 else:
     model = torch.nn.Sequential(
-        torch.nn.Linear(env_params['states'][0][0] + env_params["rewards"][0][0], 128), torch.nn.ReLU(),
+        torch.nn.Linear(env_params['states'][0][0], 128), torch.nn.ReLU(),
         torch.nn.Linear(128, 512), torch.nn.ReLU(),
         torch.nn.Linear(512, 128), torch.nn.ReLU(),
         torch.nn.Linear(128, env.action_space.n))
@@ -91,4 +91,5 @@ wandb.log({
 })
 
 wandb.run.log_code()
-wandb.run.summary["Global reward metric"] = metric_fun(experiment.global_rewards)[0]
+wandb.run.summary["Global reward metric"] = experiment.evaluate()
+
