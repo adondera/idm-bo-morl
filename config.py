@@ -60,4 +60,5 @@ def default_params():
         "nu": 2.5,
         "utility_function": "ucb",
         "number_BO_episodes": 5,
+        "wandb": True,
     }
