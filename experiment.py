@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.ndimage import uniform_filter1d
 
-
 class Experiment:
     def __init__(
             self,
@@ -143,8 +142,8 @@ class Experiment:
     def run(self):
         env_steps = 0
         for e in tqdm.tqdm(range(self.max_episodes)):
-            render = self.render_step > 0 and (e + 1) % self.render_step == 0
-            episode = self._run_episode(render)
+            # render = self.render_step > 0 and (e + 1) % self.render_step == 0
+            episode = self._run_episode(False)
             env_steps += episode["env_steps"]
             loss = self._learn_from_episode(episode["batch"])
             if loss is not None:

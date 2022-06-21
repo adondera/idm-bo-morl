@@ -1,5 +1,6 @@
 import os
 import gym
+from gym.wrappers import RecordVideo
 import matplotlib
 import numpy as np
 import torch
@@ -32,8 +33,9 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
-# env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
+# env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
+env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -46,9 +48,11 @@ env_params = {
     "dones": ((1,), torch.bool),
 }
 
+env = RecordVideo(env, "./videos", name_prefix = "mountaincar-velocity") 
+
 config_params = env.get_config()
 config_params["k"] = 0
-preference = np.array([0.5, 0.5], dtype=np.single)
+preference = np.array([0.05, 0.95], dtype=np.single)
 
 multi_objective = True
 tag = "MO_DQN" if multi_objective else "SO_DQN"
