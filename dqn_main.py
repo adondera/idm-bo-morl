@@ -32,7 +32,7 @@ if os.environ.get("DESKTOP_SESSION") == "i3":
 else:
     matplotlib.use("Qt5agg")
 
-env = RescaledReward(SparseCartpole(CartPoleV1AnglePosEnergyRewardWrapper(gym.make("CartPole-v1"))))
+env = RescaledReward(SparseCartpole(CartPoleNoisyRewardWrapper(gym.make("CartPole-v1"))))
 # env = RescaledReward(DiscreteMountainCarVelocityDistance(gym.make("MountainCar-v0")), [10, 1])
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -53,10 +53,11 @@ preference = np.array([0.5, 0.5], dtype=np.single)
 multi_objective = True
 tag = "MO_DQN" if multi_objective else "SO_DQN"
 
-wandb.init(project="test-project", entity="idm-morl-bo", tags=[tag] + env.tags, config=config_params)
-preference_table = wandb.Table(columns=[i for i in range(env.numberPreferences)])
-preference_table.add_data(*preference)
-wandb.log({"Preference": preference_table})
+if config_params["wandb"]:
+    wandb.init(project="test-project", entity="idm-morl-bo", tags=[tag] + env.tags, config=config_params)
+    preference_table = wandb.Table(columns=[i for i in range(env.numberPreferences)])
+    preference_table.add_data(*preference)
+    wandb.log({"Preference": preference_table})
 
 if multi_objective:
     model = torch.nn.Sequential(
@@ -109,13 +110,14 @@ else:
 
 experiment.run()
 
-wandb.log(
-    {
-        f"Experiment plot": experiment.fig,
-        f"Episode length metric": metric_fun(experiment.episode_lengths),
-    }
-)
+if config_params["wandb"]:
+    wandb.log(
+        {
+            f"Experiment plot": experiment.fig,
+            f"Episode length metric": metric_fun(experiment.episode_lengths),
+        }
+    )
 
-wandb.run.log_code()
-wandb.run.summary["Global reward metric"] = experiment.evaluate()
+    wandb.run.log_code()
+    wandb.run.summary["Global reward metric"] = experiment.evaluate()
 
